@@ -9,6 +9,11 @@ lerna-debug.log*
 
 node_modules
 dist
+.codex/
+.agents/
+.claude/
+AGENTS.md
+CLAUDE.md
 dist-ssr
 *.local
 

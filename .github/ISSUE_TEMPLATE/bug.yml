@@ -1,0 +1,25 @@
+name: 버그 제보
+description: 재현 가능한 오류를 등록합니다.
+title: "fix: "
+labels: ["fix"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: 문제 상황
+      description: 어떤 문제가 발생했는지 적어주세요.
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: 재현 방법
+      placeholder: |
+        1. 첫 번째 단계
+        2. 두 번째 단계
+        3. 세 번째 단계
+  - type: textarea
+    id: expected
+    attributes:
+      label: 기대 동작
+      description: 원래 어떻게 동작해야 하는지 적어주세요.
