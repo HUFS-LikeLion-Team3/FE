@@ -12,3 +12,5 @@ Figma `02 · Design System / Components`의 Button(159:41), TextField(159:69), C
 Tailwind v4 토큰은 src/styles/tokens.css, 자체 호스팅 폰트는 src/styles/fonts.css에서 관리한다. 제목은 text-hero/page/section/news-title, 뉴스 본문은 text-news-body, UI는 text-ui/control/meta, 숫자는 text-number를 사용한다. 한글 라벨에는 font-mono를 사용하지 않는다.
 
 `pnpm dev` 후 `/dev/ui`에서 상태·키보드 동작·모바일 배치를 확인한다. 해당 라우트는 개발 환경에만 포함된다. 실제 기능 화면은 아직 scaffold 상태다.
+
+입력 필드 경계에는 border-control(#8A8397)을 사용한다. 흰 입력 배경과 3.64:1, 주변 surface-subtle과 3.37:1 대비를 확보한다. 비활성 입력에는 기존 border-default를 사용한다.

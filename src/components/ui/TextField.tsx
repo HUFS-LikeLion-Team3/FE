@@ -12,9 +12,9 @@ type TextFieldProps = FieldProps & ComponentPropsWithRef<'input'>
 type TextAreaProps = FieldProps & ComponentPropsWithRef<'textarea'>
 
 const controlClassName = cn(
-  'w-full min-h-12 rounded-control border border-border-default bg-surface-canvas p-3 text-meta text-text-primary',
+  'w-full min-h-12 rounded-control border border-border-control bg-surface-canvas p-3 text-meta text-text-primary',
   'placeholder:text-text-muted focus-visible:border-brand-primary focus-visible:outline-1 focus-visible:outline-brand-primary',
-  'disabled:bg-surface-subtle disabled:text-text-muted disabled:opacity-100',
+  'disabled:border-border-default disabled:bg-surface-subtle disabled:text-text-muted disabled:opacity-100',
   'aria-invalid:border-status-error aria-invalid:focus-visible:outline-status-error',
 )
 
