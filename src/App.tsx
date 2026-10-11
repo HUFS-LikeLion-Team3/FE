@@ -1,4 +1,7 @@
+import { lazy, Suspense } from 'react'
 import { Navigate, Route, Routes } from 'react-router-dom'
+
+const UiPreviewPage = import.meta.env.DEV ? lazy(() => import('@/pages/UiPreviewPage')) : null
 
 function PlaceholderPage({ title, description }: { title: string; description: string }) {
   return (
@@ -13,6 +16,16 @@ function PlaceholderPage({ title, description }: { title: string; description: s
 function App() {
   return (
     <Routes>
+      {UiPreviewPage ? (
+        <Route
+          path="/dev/ui"
+          element={
+            <Suspense fallback={<p role="status">불러오는 중…</p>}>
+              <UiPreviewPage />
+            </Suspense>
+          }
+        />
+      ) : null}
       <Route
         path="/"
         element={<PlaceholderPage title="경제 뉴스로 시장을 해석하는 연습" description="FinSight P0 화면을 이 라우트 구조에서 구현합니다." />}
