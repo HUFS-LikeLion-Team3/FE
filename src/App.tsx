@@ -1,7 +1,10 @@
 import { lazy, Suspense } from 'react'
-import { Navigate, Route, Routes } from 'react-router-dom'
+import { createBrowserRouter, Navigate, Route, RouterProvider, Routes } from 'react-router-dom'
+
+import AssignedProductPage from '@/features/learning/AssignedProductPage'
 
 const UiPreviewPage = import.meta.env.DEV ? lazy(() => import('@/pages/UiPreviewPage')) : null
+const AssignedPreviewApp = import.meta.env.DEV ? lazy(() => import('@/features/learning/AssignedPreviewApp')) : null
 
 function PlaceholderPage({ title, description }: { title: string; description: string }) {
   return (
@@ -13,29 +16,27 @@ function PlaceholderPage({ title, description }: { title: string; description: s
   )
 }
 
-function App() {
+function AppRoutes() {
   return (
     <Routes>
-      {UiPreviewPage ? (
-        <Route
-          path="/dev/ui"
-          element={
-            <Suspense fallback={<p role="status">불러오는 중…</p>}>
-              <UiPreviewPage />
-            </Suspense>
-          }
-        />
-      ) : null}
       <Route
         path="/"
         element={<PlaceholderPage title="경제 뉴스로 시장을 해석하는 연습" description="FinSight P0 화면을 이 라우트 구조에서 구현합니다." />}
       />
       <Route path="/login" element={<PlaceholderPage title="로그인" description="카카오 로그인 화면이 들어갈 자리입니다." />} />
       <Route path="/explore" element={<PlaceholderPage title="뉴스 탐색" description="큐레이션 뉴스 목록 화면이 들어갈 자리입니다." />} />
-      <Route path="/news/:newsId" element={<PlaceholderPage title="뉴스 상세" description="뉴스 브리핑과 예측 시작 CTA가 들어갈 자리입니다." />} />
+      <Route path="/news/:newsId" element={<AssignedProductPage page="news" />} />
+      <Route path="/news/:newsId/predict" element={<AssignedProductPage page="prediction" />} />
+      <Route path="/learning/:sessionId/edit" element={<AssignedProductPage page="prediction" />} />
+      <Route path="/learning/:sessionId/feedback" element={<AssignedProductPage page="initial" />} />
+      <Route path="/learning/:sessionId/final-feedback" element={<AssignedProductPage page="final" />} />
+      {AssignedPreviewApp && <Route path="/dev/pages/*" element={<Suspense fallback={<p role="status">불러오는 중…</p>}><AssignedPreviewApp /></Suspense>} />}
+      {UiPreviewPage && <Route path="/dev/ui" element={<Suspense fallback={<p role="status">불러오는 중…</p>}><UiPreviewPage /></Suspense>} />}
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   )
 }
 
-export default App
+// A data router enables useBlocker for unsaved prediction navigation.
+const router = createBrowserRouter([{ path: '*', element: <AppRoutes /> }])
+export default function App() { return <RouterProvider router={router} /> }
