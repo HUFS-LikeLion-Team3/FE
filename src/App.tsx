@@ -1,7 +1,7 @@
 import { lazy, Suspense } from 'react'
 import { createBrowserRouter, Navigate, Route, RouterProvider, Routes } from 'react-router-dom'
 
-import AssignedProductPage from '@/features/learning/AssignedProductPage'
+const AssignedProductPage = lazy(() => import('@/features/learning/AssignedProductPage'))
 
 const UiPreviewPage = import.meta.env.DEV ? lazy(() => import('@/pages/UiPreviewPage')) : null
 const AssignedPreviewApp = import.meta.env.DEV ? lazy(() => import('@/features/learning/AssignedPreviewApp')) : null
@@ -39,4 +39,4 @@ function AppRoutes() {
 
 // A data router enables useBlocker for unsaved prediction navigation.
 const router = createBrowserRouter([{ path: '*', element: <AppRoutes /> }])
-export default function App() { return <RouterProvider router={router} /> }
+export default function App() { return <Suspense fallback={<p role="status">불러오는 중…</p>}><RouterProvider router={router} /></Suspense> }

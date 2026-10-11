@@ -7,9 +7,11 @@ import { Modal } from './components/Modal'
 import { linkClass, Notice, PageTitle, Shell, TargetSwitcher } from './components/PagePrimitives'
 import type { NewsView } from './model'
 import { directionLabel, horizons, validateDraft, type Direction, type Horizon, type Target } from './model'
+import { ApiError } from '@/lib/api-client'
 import type { Session } from './session-context'
 
-type Props = { news: NewsView; newsHref: string; feedbackHref: string; session: Session; targets: Target[]; onRequestTargetChange: () => void; onSave: () => Promise<void>; onSubmit: () => Promise<void> }
+export type EditorSession = Pick<Session, 'draft' | 'setDraft' | 'savedAt' | 'discard' | 'dirty'>
+type Props = { news: NewsView; newsHref: string; feedbackHref: string; session: EditorSession; targets: Target[]; onRequestTargetChange: () => void; onSave: () => Promise<void>; onSubmit: () => Promise<string | void> }
 export default function PredictionPage({ news, newsHref, feedbackHref, session, targets, onRequestTargetChange, onSave, onSubmit }: Props) {
   const navigate = useNavigate()
   const [active, setActive] = useState(targets[0].id)
@@ -30,8 +32,9 @@ export default function PredictionPage({ news, newsHref, feedbackHref, session, 
     setActionError(null)
   }
   const save = async (leave = false) => {
+    if (busy) return
     setBusy('save'); setActionError(null)
-    try { await onSave() } catch { setBusy(null); setActionError('임시 저장하지 못했어요. 작성 내용은 유지했어요. 다시 시도해 주세요.'); return }
+    try { await onSave() } catch (error) { setBusy(null); setActionError(error instanceof ApiError ? `${error.message} 작성 내용은 유지했어요.` : '임시 저장하지 못했어요. 작성 내용은 유지했어요. 다시 시도해 주세요.'); return }
     setBusy(null)
     if (leave && blocker.state === 'blocked') blocker.proceed()
   }
@@ -46,10 +49,11 @@ export default function PredictionPage({ news, newsHref, feedbackHref, session, 
     const message = validateDraft(session.draft, targets)
     if (message) { setReview(false); setError(message); return }
     setBusy('submit'); setActionError(null)
-    try { await onSubmit() } catch { setBusy(null); setActionError('예측을 확정하지 못했어요. 대상·방향·이유를 유지했어요. 다시 제출해 주세요.'); return }
+    let destination: string | void
+    try { destination = await onSubmit() } catch (error) { setBusy(null); setActionError(error instanceof ApiError ? `${error.message} 대상·방향·이유는 유지했어요.` : '예측을 확정하지 못했어요. 대상·방향·이유를 유지했어요. 다시 제출해 주세요.'); return }
     allowNavigation.current = true
     setBusy(null)
-    navigate(feedbackHref)
+    navigate(destination || feedbackHref)
   }
   const closeReview = () => { if (!busy) { setReview(false); setActionError(null) } }
   return <Shell><PageTitle label="WORKBOOK / PREDICTION" title="나의 생각을 기록해 보세요" description="먼저 내 관점으로 예상하고, 제출 후 AI 피드백을 살펴보세요." />
@@ -58,6 +62,7 @@ export default function PredictionPage({ news, newsHref, feedbackHref, session, 
       <TargetSwitcher targets={targets} active={target.id} onChange={setActive}><Button variant="text" onClick={onRequestTargetChange}>대상 변경</Button></TargetSwitcher>
       <div className="grid grid-cols-[minmax(0,5fr)_minmax(0,3fr)] items-start gap-12">
         <div className="min-w-0 space-y-6"><h2 className="text-section">대상 {index + 1}/{targets.length} · {target.name}</h2>
+          {target.referenceMarket && <section className="space-y-3 rounded-card bg-surface-subtle p-4" aria-label="제출 전 참고 시장값"><h3 className="text-control font-medium">제출 전 참고 시장값</h3>{target.referenceMarket.status === 'ready' ? <><p className="text-ui">{target.referenceMarket.value?.toLocaleString('ko-KR') ?? '—'} {target.referenceMarket.unit}</p><p className="text-meta">직전 종가 대비 {target.referenceMarket.changeValue ?? '—'} {target.kind === 'rate' ? '퍼센트포인트' : target.referenceMarket.unit}{target.referenceMarket.changePercent !== null && ` · ${target.referenceMarket.changePercent}%`}</p><p className="text-meta text-text-muted">기준 시각 · {target.referenceMarket.asOf ?? '정보 없음'}</p>{target.referenceMarket.sourceName && <p className="text-meta">{target.referenceMarket.sourceName}</p>}{target.referenceMarket.sourceUrl && <a href={target.referenceMarket.sourceUrl} target="_blank" rel="noopener noreferrer" className={linkClass}>시장 자료 보기 ↗</a>}</> : <p className="text-meta text-text-secondary">{target.referenceMarket.status === 'pending' ? '아직 확정된 참고 시장값이 없어요.' : target.referenceMarket.unavailableReason ?? '참고 시장값을 확보하지 못했어요.'}</p>}<p className="text-meta text-text-muted">결과 비교 기준값은 예측 제출 후 별도로 확정돼요.</p></section>}
           {horizons.map(h => <fieldset key={`${target.id}-${h}`} className="space-y-4 border-b border-border-default pb-6"><legend className="mb-4 flex w-full justify-between"><span className="text-section">{h}거래일</span><span className="self-center text-meta text-text-muted">방향 필수</span></legend>
             <div className="grid grid-cols-3 gap-3">{(['up', 'down', 'neutral'] as const).map(direction => <Choice key={direction} type="radio" name={`${target.id}-${h}`} value={direction} className="[&>span]:border-border-control [&>span]:peer-checked:border-brand-primary" label={directionLabel(target, direction)} checked={session.draft[target.id][h].direction === direction} onChange={() => update(h, { direction })} />)}</div>
             <TextArea label="판단 이유 · 개별 선택" rows={2} value={session.draft[target.id][h].reason} onChange={event => update(h, { reason: event.target.value })} placeholder="판단에 참고한 요소를 기록해보세요." helperText="금리·환율·수급·실적처럼 참고한 요소를 적어보세요. 전체 예측 중 이유 하나 이상이 필요해요." />
