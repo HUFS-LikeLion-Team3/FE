@@ -5,6 +5,7 @@ const AssignedProductPage = lazy(() => import('@/features/learning/AssignedProdu
 const LoginPage = lazy(() => import('@/features/auth/LoginPage'))
 const KakaoCallbackPage = lazy(() => import('@/features/auth/KakaoCallbackPage'))
 const InterestSettingPage = lazy(() => import('@/features/interest/InterestSettingPage'))
+const HomePage = lazy(() => import('@/features/home/HomePage'))
 
 const UiPreviewPage = import.meta.env.DEV ? lazy(() => import('@/pages/UiPreviewPage')) : null
 const AssignedPreviewApp = import.meta.env.DEV ? lazy(() => import('@/features/learning/AssignedPreviewApp')) : null
@@ -24,10 +25,7 @@ const fallback = <p role="status">불러오는 중…</p>
 function AppRoutes() {
   return (
     <Routes>
-      <Route
-        path="/"
-        element={<PlaceholderPage title="경제 뉴스로 시장을 해석하는 연습" description="FinSight P0 화면을 이 라우트 구조에서 구현합니다." />}
-      />
+      <Route path="/" element={<Suspense fallback={fallback}><HomePage /></Suspense>} />
       <Route path="/login" element={<Suspense fallback={fallback}><LoginPage /></Suspense>} />
       <Route path="/auth/kakao/callback" element={<Suspense fallback={fallback}><KakaoCallbackPage /></Suspense>} />
       <Route path="/onboarding" element={<Suspense fallback={fallback}><InterestSettingPage /></Suspense>} />
