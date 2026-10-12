@@ -3,7 +3,6 @@
  * /dev/home 에서 접근합니다.
  */
 import { Link } from 'react-router-dom'
-import { Button } from '@/components/ui/Button'
 import { Shell } from '@/features/learning/components/PagePrimitives'
 import { mockInProgressSession, mockNewsList } from './fixtures'
 

@@ -83,6 +83,85 @@ const sessionListResponseSchema = z.object({
 export type LearningSession = z.infer<typeof learningSessionSchema>
 export type SessionStatus = z.infer<typeof sessionStatusSchema>
 
+/**
+ * "이어서 학습하기"에 노출할 진행 중 상태와 우선순위.
+ * 명세 흐름: drafting → baseline_pending → observing → reflection_pending → completed
+ * 작성 중(drafting)을 가장 먼저, 회고 대기(reflection_pending)를 가장 나중에 노출한다.
+ * completed는 "진행 중"이 아니므로 제외한다.
+ */
+export const IN_PROGRESS_STATUS_PRIORITY: SessionStatus[] = [
+  'drafting',
+  'baseline_pending',
+  'observing',
+  'reflection_pending',
+]
+
+type SessionDisplay = {
+  /** 카드 상단 상태 라벨 */
+  label: string
+  /** 라벨 색상 클래스 */
+  tone: 'brand' | 'warning' | 'muted'
+  /** '결과 보기' 버튼이 이동할 경로를 세션으로부터 계산 */
+  href: (session: LearningSession) => string
+  /** 액션 버튼 문구 */
+  action: string
+}
+
+const SESSION_DISPLAY: Record<SessionStatus, SessionDisplay> = {
+  drafting: {
+    label: '작성 중 · 예측을 마저 작성해요',
+    tone: 'brand',
+    href: (s) => `/news/${s.newsId}/predict`,
+    action: '이어서 작성하기',
+  },
+  baseline_pending: {
+    label: '기준값 확정 중 · 결과를 준비하고 있어요',
+    tone: 'muted',
+    href: (s) => `/learning/${s.id}/feedback`,
+    action: '학습 보기',
+  },
+  observing: {
+    label: '관찰 중 · 새 결과가 있어요',
+    tone: 'warning',
+    href: (s) => `/learning/${s.id}/feedback`,
+    action: '결과 보기',
+  },
+  reflection_pending: {
+    label: '회고 대기 · 돌아볼 차례예요',
+    tone: 'brand',
+    href: (s) => `/learning/${s.id}/final-feedback`,
+    action: '회고하러 가기',
+  },
+  completed: {
+    label: '학습 완료',
+    tone: 'muted',
+    href: (s) => `/learning/${s.id}/final-feedback`,
+    action: '다시 보기',
+  },
+}
+
+/** 세션 상태에 맞는 표시 정보(문구/색상/경로/액션)를 반환한다. */
+export function getSessionDisplay(status: SessionStatus): SessionDisplay {
+  return SESSION_DISPLAY[status]
+}
+
+/**
+ * 진행 중 세션 목록에서 우선순위가 가장 높은 세션 1개를 고른다.
+ * 같은 우선순위면 updatedAt이 최신인 세션을 고른다.
+ */
+export function pickTopInProgress(sessions: LearningSession[]): LearningSession | null {
+  const candidates = sessions.filter((s) =>
+    IN_PROGRESS_STATUS_PRIORITY.includes(s.status),
+  )
+  if (candidates.length === 0) return null
+  return candidates.sort((a, b) => {
+    const pa = IN_PROGRESS_STATUS_PRIORITY.indexOf(a.status)
+    const pb = IN_PROGRESS_STATUS_PRIORITY.indexOf(b.status)
+    if (pa !== pb) return pa - pb
+    return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
+  })[0]
+}
+
 export type SessionListParams = {
   newsId?: string
   status?: SessionStatus
