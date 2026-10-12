@@ -4,6 +4,7 @@ import { createBrowserRouter, Navigate, Route, RouterProvider, Routes } from 're
 const AssignedProductPage = lazy(() => import('@/features/learning/AssignedProductPage'))
 const LoginPage = lazy(() => import('@/features/auth/LoginPage'))
 const KakaoCallbackPage = lazy(() => import('@/features/auth/KakaoCallbackPage'))
+const PolicyPage = lazy(() => import('@/features/auth/PolicyPage'))
 
 const UiPreviewPage = import.meta.env.DEV ? lazy(() => import('@/pages/UiPreviewPage')) : null
 const AssignedPreviewApp = import.meta.env.DEV ? lazy(() => import('@/features/learning/AssignedPreviewApp')) : null
@@ -27,6 +28,8 @@ function AppRoutes() {
       />
       <Route path="/login" element={<Suspense fallback={<p role="status">불러오는 중…</p>}><LoginPage /></Suspense>} />
       <Route path="/auth/kakao/callback" element={<Suspense fallback={<p role="status">불러오는 중…</p>}><KakaoCallbackPage /></Suspense>} />
+      <Route path="/terms" element={<Suspense fallback={<p role="status">불러오는 중…</p>}><PolicyPage kind="terms" /></Suspense>} />
+      <Route path="/privacy" element={<Suspense fallback={<p role="status">불러오는 중…</p>}><PolicyPage kind="privacy" /></Suspense>} />
       <Route path="/explore" element={<PlaceholderPage title="뉴스 탐색" description="큐레이션 뉴스 목록 화면이 들어갈 자리입니다." />} />
       <Route path="/news/:newsId" element={<AssignedProductPage page="news" />} />
       <Route path="/news/:newsId/predict" element={<AssignedProductPage page="prediction" />} />

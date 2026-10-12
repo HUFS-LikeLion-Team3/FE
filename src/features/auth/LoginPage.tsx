@@ -1,4 +1,4 @@
-import { useSearchParams } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 import { redirectToKakao } from './api'
 
 const steps = [
@@ -76,7 +76,9 @@ export default function LoginPage() {
               <p role="alert" className="rounded-control bg-status-error-bg px-3 py-2 font-sans text-[13px] text-status-error">
                 {error === 'kakao_denied'
                   ? '카카오 로그인을 취소했어요. 다시 시도해 주세요.'
-                  : '로그인 중 문제가 발생했어요. 다시 시도해 주세요.'}
+                  : error === 'invalid_state'
+                    ? '보안 확인에 실패했어요. 다시 로그인해 주세요.'
+                    : '로그인 중 문제가 발생했어요. 다시 시도해 주세요.'}
               </p>
             )}
 
@@ -112,22 +114,18 @@ export default function LoginPage() {
 
             {/* 약관 링크 */}
             <div className="flex flex-col gap-3 border-t border-border-default pt-5">
-              <a
-                href="/terms"
-                target="_blank"
-                rel="noopener noreferrer"
+              <Link
+                to="/terms"
                 className="text-center font-sans text-[14px] text-text-secondary underline-offset-2 hover:underline focus-visible:outline-2 focus-visible:outline-brand-primary"
               >
                 서비스 이용약관 보기 ↗
-              </a>
-              <a
-                href="/privacy"
-                target="_blank"
-                rel="noopener noreferrer"
+              </Link>
+              <Link
+                to="/privacy"
                 className="text-center font-sans text-[14px] text-text-secondary underline-offset-2 hover:underline focus-visible:outline-2 focus-visible:outline-brand-primary"
               >
                 개인정보 처리방침 보기 ↗
-              </a>
+              </Link>
             </div>
           </div>
         </aside>
