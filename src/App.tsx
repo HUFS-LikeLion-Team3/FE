@@ -2,6 +2,8 @@ import { lazy, Suspense } from 'react'
 import { createBrowserRouter, Navigate, Route, RouterProvider, Routes } from 'react-router-dom'
 
 const AssignedProductPage = lazy(() => import('@/features/learning/AssignedProductPage'))
+const LoginPage = lazy(() => import('@/features/auth/LoginPage'))
+const KakaoCallbackPage = lazy(() => import('@/features/auth/KakaoCallbackPage'))
 
 const UiPreviewPage = import.meta.env.DEV ? lazy(() => import('@/pages/UiPreviewPage')) : null
 const AssignedPreviewApp = import.meta.env.DEV ? lazy(() => import('@/features/learning/AssignedPreviewApp')) : null
@@ -23,7 +25,8 @@ function AppRoutes() {
         path="/"
         element={<PlaceholderPage title="경제 뉴스로 시장을 해석하는 연습" description="FinSight P0 화면을 이 라우트 구조에서 구현합니다." />}
       />
-      <Route path="/login" element={<PlaceholderPage title="로그인" description="카카오 로그인 화면이 들어갈 자리입니다." />} />
+      <Route path="/login" element={<Suspense fallback={<p role="status">불러오는 중…</p>}><LoginPage /></Suspense>} />
+      <Route path="/auth/kakao/callback" element={<Suspense fallback={<p role="status">불러오는 중…</p>}><KakaoCallbackPage /></Suspense>} />
       <Route path="/explore" element={<PlaceholderPage title="뉴스 탐색" description="큐레이션 뉴스 목록 화면이 들어갈 자리입니다." />} />
       <Route path="/news/:newsId" element={<AssignedProductPage page="news" />} />
       <Route path="/news/:newsId/predict" element={<AssignedProductPage page="prediction" />} />
