@@ -9,6 +9,7 @@ const HomePage = lazy(() => import('@/features/home/HomePage'))
 
 const UiPreviewPage = import.meta.env.DEV ? lazy(() => import('@/pages/UiPreviewPage')) : null
 const AssignedPreviewApp = import.meta.env.DEV ? lazy(() => import('@/features/learning/AssignedPreviewApp')) : null
+const HomePreviewPage = import.meta.env.DEV ? lazy(() => import('@/features/home/HomePreviewPage')) : null
 
 function PlaceholderPage({ title, description }: { title: string; description: string }) {
   return (
@@ -37,6 +38,7 @@ function AppRoutes() {
       <Route path="/learning/:sessionId/final-feedback" element={<AssignedProductPage page="final" />} />
       {AssignedPreviewApp && <Route path="/dev/pages/*" element={<Suspense fallback={fallback}><AssignedPreviewApp /></Suspense>} />}
       {UiPreviewPage && <Route path="/dev/ui" element={<Suspense fallback={fallback}><UiPreviewPage /></Suspense>} />}
+      {HomePreviewPage && <Route path="/dev/home" element={<Suspense fallback={fallback}><HomePreviewPage /></Suspense>} />}
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   )
