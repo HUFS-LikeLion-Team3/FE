@@ -2,9 +2,11 @@ import { lazy, Suspense } from 'react'
 import { createBrowserRouter, Navigate, Route, RouterProvider, Routes } from 'react-router-dom'
 
 const AssignedProductPage = lazy(() => import('@/features/learning/AssignedProductPage'))
+const LearningHistoryPage = lazy(() => import('@/features/history/LearningHistoryPage'))
 
 const UiPreviewPage = import.meta.env.DEV ? lazy(() => import('@/pages/UiPreviewPage')) : null
 const AssignedPreviewApp = import.meta.env.DEV ? lazy(() => import('@/features/learning/AssignedPreviewApp')) : null
+const LearningHistoryPreviewPage = import.meta.env.DEV ? lazy(() => import('@/features/history/LearningHistoryPreviewPage')) : null
 
 function PlaceholderPage({ title, description }: { title: string; description: string }) {
   return (
@@ -25,6 +27,7 @@ function AppRoutes() {
       />
       <Route path="/login" element={<PlaceholderPage title="로그인" description="카카오 로그인 화면이 들어갈 자리입니다." />} />
       <Route path="/explore" element={<PlaceholderPage title="뉴스 탐색" description="큐레이션 뉴스 목록 화면이 들어갈 자리입니다." />} />
+      <Route path="/learning" element={<Suspense fallback={<p role="status">불러오는 중…</p>}><LearningHistoryPage /></Suspense>} />
       <Route path="/news/:newsId" element={<AssignedProductPage page="news" />} />
       <Route path="/news/:newsId/predict" element={<AssignedProductPage page="prediction" />} />
       <Route path="/learning/:sessionId/edit" element={<AssignedProductPage page="prediction" />} />
@@ -32,6 +35,7 @@ function AppRoutes() {
       <Route path="/learning/:sessionId/final-feedback" element={<AssignedProductPage page="final" />} />
       {AssignedPreviewApp && <Route path="/dev/pages/*" element={<Suspense fallback={<p role="status">불러오는 중…</p>}><AssignedPreviewApp /></Suspense>} />}
       {UiPreviewPage && <Route path="/dev/ui" element={<Suspense fallback={<p role="status">불러오는 중…</p>}><UiPreviewPage /></Suspense>} />}
+      {LearningHistoryPreviewPage && <Route path="/dev/learning" element={<Suspense fallback={<p role="status">불러오는 중…</p>}><LearningHistoryPreviewPage /></Suspense>} />}
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   )
