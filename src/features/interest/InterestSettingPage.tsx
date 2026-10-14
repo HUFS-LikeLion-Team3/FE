@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Button } from '@/components/ui/Button'
@@ -54,20 +54,29 @@ export default function InterestSettingPage() {
   const queryClient = useQueryClient()
 
   // 기존 관심사 조회 (설정 페이지 재방문 시 복원)
-  const { data: savedInterests } = useQuery({
+  const {
+    data: savedInterests,
+    isLoading: isLoadingInterests,
+    isError: isLoadError,
+    refetch,
+  } = useQuery({
     queryKey: ['interests'],
     queryFn: getInterests,
   })
 
-  const [selectedMarkets, setSelectedMarkets] = useState<Set<string>>(() =>
-    toMarketSet(savedInterests ?? []),
-  )
-  const [selectedTopics, setSelectedTopics] = useState<Set<string>>(() =>
-    toTopicSet(savedInterests ?? []),
-  )
+  const [selectedMarkets, setSelectedMarkets] = useState<Set<string>>(new Set())
+  const [selectedTopics, setSelectedTopics] = useState<Set<string>>(new Set())
+
+  // 조회 완료 후 저장된 관심사를 초기 선택 상태에 반영한다.
+  // (useState 초기화 함수는 1회만 실행되므로 비동기 조회 결과를 담지 못한다)
+  useEffect(() => {
+    if (!savedInterests) return
+    setSelectedMarkets(toMarketSet(savedInterests))
+    setSelectedTopics(toTopicSet(savedInterests))
+  }, [savedInterests])
 
   // 관심사 저장 + 온보딩 완료
-  const { mutate: submit, isPending, error } = useMutation({
+  const { mutate: submit, isPending, error: saveError } = useMutation({
     mutationFn: async () => {
       const interests: InterestItem[] = [
         ...Array.from(selectedMarkets).map(key => ({ interestType: 'market' as const, interestKey: key })),
@@ -83,7 +92,7 @@ export default function InterestSettingPage() {
   })
 
   // 건너뛰기: 빈 관심사로 저장 후 온보딩 완료
-  const { mutate: skip, isPending: isSkipping } = useMutation({
+  const { mutate: skip, isPending: isSkipping, error: skipError } = useMutation({
     mutationFn: async () => {
       await saveInterests([])
       await completeOnboarding()
@@ -123,7 +132,10 @@ export default function InterestSettingPage() {
   }
 
   const marketState = marketSelectionState(selectedMarkets)
+  // 조회 중이거나 조회 실패 시에는 저장을 막는다.
+  // 조회가 끝나지 않은 상태에서 저장하면 기존 관심사를 빈 배열로 덮어쓸 수 있다.
   const isBusy = isPending || isSkipping
+  const canSave = !isLoadingInterests && !isLoadError && !isBusy
 
   return (
     <Shell>
@@ -137,6 +149,28 @@ export default function InterestSettingPage() {
           관심 분야를 선택하면 관련 뉴스를 먼저 보여드려요. 선택하지 않고 시작해도 괜찮아요.
         </p>
       </div>
+
+      {/* 조회 실패 안내: 저장 차단 + 재시도 */}
+      {isLoadError && (
+        <div role="alert" className="space-y-3 rounded-card bg-status-error-bg px-5 py-4">
+          <p className="font-sans text-[14px] font-medium text-status-error">
+            관심사를 불러오지 못했어요.
+          </p>
+          <p className="font-sans text-[13px] text-text-secondary">
+            지금 저장하면 기존 설정이 지워질 수 있어 저장을 멈췄어요. 다시 불러온 뒤 설정해 주세요.
+          </p>
+          <Button variant="secondary" onClick={() => refetch()}>
+            다시 불러오기
+          </Button>
+        </div>
+      )}
+
+      {/* 조회 중 안내 */}
+      {isLoadingInterests && (
+        <p role="status" className="font-sans text-[14px] text-text-muted">
+          기존 관심사를 불러오는 중…
+        </p>
+      )}
 
       {/* 관심 시장 */}
       <section className="space-y-4" aria-labelledby="market-heading">
@@ -187,8 +221,8 @@ export default function InterestSettingPage() {
         </div>
       </section>
 
-      {/* 오류 메시지 */}
-      {error && (
+      {/* 저장 오류 메시지 */}
+      {(saveError || skipError) && (
         <p role="alert" className="rounded-control bg-status-error-bg px-3 py-2 font-sans text-[13px] text-status-error">
           저장하지 못했어요. 다시 시도해 주세요.
         </p>
@@ -200,14 +234,14 @@ export default function InterestSettingPage() {
           className="w-full"
           loading={isPending}
           loadingLabel="저장 중…"
-          disabled={isBusy}
+          disabled={!canSave}
           onClick={() => submit()}
         >
           완료하고 시작하기
         </Button>
         <button
           type="button"
-          disabled={isBusy}
+          disabled={!canSave}
           onClick={() => skip()}
           className="w-full min-h-11 font-sans text-[14px] text-text-secondary hover:text-text-primary disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-brand-primary"
         >
