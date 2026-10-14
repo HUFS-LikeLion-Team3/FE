@@ -92,7 +92,7 @@ export default function InterestSettingPage() {
   })
 
   // 건너뛰기: 빈 관심사로 저장 후 온보딩 완료
-  const { mutate: skip, isPending: isSkipping } = useMutation({
+  const { mutate: skip, isPending: isSkipping, error: skipError } = useMutation({
     mutationFn: async () => {
       await saveInterests([])
       await completeOnboarding()
@@ -222,7 +222,7 @@ export default function InterestSettingPage() {
       </section>
 
       {/* 저장 오류 메시지 */}
-      {saveError && (
+      {(saveError || skipError) && (
         <p role="alert" className="rounded-control bg-status-error-bg px-3 py-2 font-sans text-[13px] text-status-error">
           저장하지 못했어요. 다시 시도해 주세요.
         </p>
