@@ -5,12 +5,15 @@ const AssignedProductPage = lazy(() => import('@/features/learning/AssignedProdu
 const LoginPage = lazy(() => import('@/features/auth/LoginPage'))
 const KakaoCallbackPage = lazy(() => import('@/features/auth/KakaoCallbackPage'))
 const InterestSettingPage = lazy(() => import('@/features/interest/InterestSettingPage'))
+const LearningHistoryPage = lazy(() => import('@/features/history/LearningHistoryPage'))
 const PolicyPage = lazy(() => import('@/features/auth/PolicyPage'))
 
 const UiPreviewPage = import.meta.env.DEV ? lazy(() => import('@/pages/UiPreviewPage')) : null
 const AssignedPreviewApp = import.meta.env.DEV ? lazy(() => import('@/features/learning/AssignedPreviewApp')) : null
 
 const InterestSettingPreviewPage = import.meta.env.DEV ? lazy(() => import('@/features/interest/InterestSettingPreviewPage')) : null
+
+const LearningHistoryPreviewPage = import.meta.env.DEV ? lazy(() => import('@/features/history/LearningHistoryPreviewPage')) : null
 
 function PlaceholderPage({ title, description }: { title: string; description: string }) {
   return (
@@ -35,6 +38,7 @@ function AppRoutes() {
       <Route path="/terms" element={<Suspense fallback={<p role="status">불러오는 중…</p>}><PolicyPage kind="terms" /></Suspense>} />
       <Route path="/privacy" element={<Suspense fallback={<p role="status">불러오는 중…</p>}><PolicyPage kind="privacy" /></Suspense>} />
       <Route path="/explore" element={<PlaceholderPage title="뉴스 탐색" description="큐레이션 뉴스 목록 화면이 들어갈 자리입니다." />} />
+      <Route path="/learning" element={<Suspense fallback={<p role="status">불러오는 중…</p>}><LearningHistoryPage /></Suspense>} />
       <Route path="/news/:newsId" element={<AssignedProductPage page="news" />} />
       <Route path="/news/:newsId/predict" element={<AssignedProductPage page="prediction" />} />
       <Route path="/learning/:sessionId/edit" element={<AssignedProductPage page="prediction" />} />
@@ -43,6 +47,7 @@ function AppRoutes() {
       {AssignedPreviewApp && <Route path="/dev/pages/*" element={<Suspense fallback={<p role="status">불러오는 중…</p>}><AssignedPreviewApp /></Suspense>} />}
       {UiPreviewPage && <Route path="/dev/ui" element={<Suspense fallback={<p role="status">불러오는 중…</p>}><UiPreviewPage /></Suspense>} />}
       {InterestSettingPreviewPage && <Route path="/dev/onboarding" element={<Suspense fallback={<p role="status">불러오는 중…</p>}><InterestSettingPreviewPage /></Suspense>} />}
+      {LearningHistoryPreviewPage && <Route path="/dev/learning" element={<Suspense fallback={<p role="status">불러오는 중…</p>}><LearningHistoryPreviewPage /></Suspense>} />}
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   )
