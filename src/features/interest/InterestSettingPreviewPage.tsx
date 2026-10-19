@@ -4,7 +4,7 @@
  *
  * 저장된 관심사(미국 + 반도체)가 진입 시 칩에 선택된 상태로 복원되는지 확인하는 것이 목적입니다.
  */
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { Button } from '@/components/ui/Button'
 import { FilterChip } from '@/components/ui/FilterChip'
 import { Shell } from '@/features/learning/components/PagePrimitives'
@@ -45,19 +45,14 @@ function marketSelectionState(selected: Set<string>) {
 }
 
 export default function InterestSettingPreviewPage() {
-  const [selectedMarkets, setSelectedMarkets] = useState<Set<string>>(new Set())
-  const [selectedTopics, setSelectedTopics] = useState<Set<string>>(new Set())
-
-  // 실제 페이지와 동일하게, 조회 완료 시점(여기서는 마운트 직후)에 복원한다.
-  useEffect(() => {
-    setSelectedMarkets(toMarketSet(MOCK_SAVED_INTERESTS))
-    setSelectedTopics(toTopicSet(MOCK_SAVED_INTERESTS))
-  }, [])
+  const [selectedMarkets, setSelectedMarkets] = useState<Set<string>>(() => toMarketSet(MOCK_SAVED_INTERESTS))
+  const [selectedTopics, setSelectedTopics] = useState<Set<string>>(() => toTopicSet(MOCK_SAVED_INTERESTS))
 
   function toggleMarket(key: string) {
     setSelectedMarkets(prev => {
       const next = new Set(prev)
-      next.has(key) ? next.delete(key) : next.add(key)
+      if (next.has(key)) next.delete(key)
+      else next.add(key)
       return next
     })
   }
@@ -69,7 +64,8 @@ export default function InterestSettingPreviewPage() {
   function toggleTopic(key: string) {
     setSelectedTopics(prev => {
       const next = new Set(prev)
-      next.has(key) ? next.delete(key) : next.add(key)
+      if (next.has(key)) next.delete(key)
+      else next.add(key)
       return next
     })
   }
