@@ -18,7 +18,7 @@ export const marketSchema = z.object({
   directionLabels: z.object({ up: z.string(), down: z.string(), neutral: z.string() }),
   referenceMarket: z.object({ status: z.enum(['ready', 'pending', 'unavailable']), value: z.number().nullable(), unit: z.string(), asOfAt: timestamp.nullable(), changeValue: z.number().nullable(), changePercent: z.number().nullable(), dataSourceName: z.string().nullable(), dataSourceUrl: httpUrl.nullable(), unavailableReason: z.string().nullable() }).optional(),
 })
-export const candidatesSchema = z.object({ candidates: z.array(marketSchema.omit({ id: true }).extend({ marketTargetId: id, sortOrder: z.number(), rationale: z.string() })) })
+export const candidatesSchema = z.object({ candidates: z.array(marketSchema.omit({ id: true }).extend({ marketTargetId: id, sortOrder: z.number(), rationale: z.string().nullable().transform(value => value ?? undefined) })) })
 export const targetsSchema = z.object({ learningSessionId: id, targets: z.array(z.object({ sessionTargetId: id, marketTargetId: id, isSelected: z.boolean(), sortOrder: z.number().nullable() })) })
 export const predictionSchema = z.object({ horizon: z.union([z.literal(1), z.literal(5), z.literal(20)]), direction: z.enum(['up', 'down', 'neutral']).nullable(), reason: z.string().nullable() })
 export const predictionsSchema = z.object({ sessionTargetId: id, predictions: z.array(predictionSchema), updatedAt: timestamp.optional() })
