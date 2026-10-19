@@ -5,7 +5,7 @@ import { Modal } from './components/Modal'
 import { linkClass, Notice, Shell, SourceCard } from './components/PagePrimitives'
 import type { NewsView } from './model'
 
-export default function NewsDetailPage({ data, onStartPrediction, onRetry, state = 'new' }: { data: NewsView | null; onRetry: () => void; onStartPrediction: () => void; state?: 'new' | 'draft' | 'submitted' | 'loading' | 'unavailable' }) {
+export default function NewsDetailPage({ data, onStartPrediction, onRetry, state = 'new' }: { data: NewsView | null; onRetry: () => void; onStartPrediction: () => void; state?: 'new' | 'draft' | 'submitted' | 'baseline_pending' | 'observing' | 'reflection_pending' | 'completed' | 'loading' | 'unavailable' }) {
   const news = data
   const [termOpen, setTermOpen] = useState(false)
   return <Shell><div className="text-center"><Link to="/explore" className={linkClass}>← 뉴스 탐색으로 돌아가기</Link></div>
@@ -18,7 +18,7 @@ export default function NewsDetailPage({ data, onStartPrediction, onRetry, state
         <section className="space-y-6"><h2 className="text-section">근거 자료</h2>{news.sources.map(source => <SourceCard key={source.id} source={source} />)}</section>
         {news.originalUrl && <a className={`${linkClass} w-full`} href={news.originalUrl} target="_blank" rel="noopener noreferrer">{news.originalLabel ?? '뉴스 원문 보기 ↗'}<span className="sr-only"> (새 탭)</span></a>}
       </article>
-      <aside className="space-y-6 rounded-card bg-surface-subtle p-6"><p className="font-mono text-label text-brand-primary">YOUR WORKBOOK</p><h2 className="text-section">시장의 변화를<br />직접 예상해 보세요</h2><h3 className="text-control font-medium">이 뉴스와 함께 관찰할 지표</h3><ul className="text-ui text-text-secondary">{news.targets.map(t => <li key={t.id}>{t.name}</li>)}</ul><p className="text-meta text-text-secondary">대상별 1·5·20거래일 방향을 기록합니다. 이유는 개별 선택이며, 제출할 때 전체에서 하나 이상 작성해 주세요.</p><Button className="w-full" onClick={onStartPrediction}>{state === 'draft' ? '작성 이어가기' : state === 'submitted' ? '제출한 기록 보기' : '예측 시작하기'}</Button><p className="text-meta text-text-muted">AI 방향성 해설은 예측을 제출한 뒤 제공해요.</p></aside>
+      <aside className="space-y-6 rounded-card bg-surface-subtle p-6"><p className="font-mono text-label text-brand-primary">YOUR WORKBOOK</p><h2 className="text-section">시장의 변화를<br />직접 예상해 보세요</h2><h3 className="text-control font-medium">이 뉴스와 함께 관찰할 지표</h3><ul className="text-ui text-text-secondary">{news.targets.map(t => <li key={t.id}>{t.name}</li>)}</ul><p className="text-meta text-text-secondary">대상별 1·5·20거래일 방향을 기록합니다. 이유는 개별 선택이며, 제출할 때 전체에서 하나 이상 작성해 주세요.</p><Button className="w-full" onClick={onStartPrediction}>{state === 'draft' ? '작성 이어가기' : state === 'completed' ? '완료한 기록 보기' : state === 'reflection_pending' ? '회고하러 가기' : state === 'observing' || state === 'baseline_pending' ? '결과 보기' : state === 'submitted' ? '제출한 기록 보기' : '예측 시작하기'}</Button><p className="text-meta text-text-muted">AI 방향성 해설은 예측을 제출한 뒤 제공해요.</p></aside>
     </div>}
     {termOpen && news?.term && <Modal title={news.term.name} onClose={() => setTermOpen(false)}><p className="text-ui">{news.term.description}</p><a className={linkClass} href={news.term.url} target="_blank" rel="noopener noreferrer">{news.term.sourceLabel} ↗</a><Button className="w-full" onClick={() => setTermOpen(false)}>닫기</Button></Modal>}
   </Shell>
