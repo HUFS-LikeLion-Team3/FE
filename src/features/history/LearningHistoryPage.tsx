@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useInfiniteQuery } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
 import { ApiError } from '@/lib/api-client'
 import { Button } from '@/components/ui/Button'
@@ -58,17 +58,15 @@ function SessionCard({
 export default function LearningHistoryPage() {
   const [filter, setFilter] = useState<StatusFilter>('all')
 
-  // 전체 세션을 받아 클라이언트에서 필터링한다 (필터 전환마다 재조회하지 않음).
-  const {
-    data: sessions = [],
-    isLoading,
-    isError,
-    error,
-    refetch,
-  } = useQuery({
-    queryKey: ['learning-sessions', 'history'],
-    queryFn: () => getLearningSessions({ size: 100 }),
+  const sessionsQuery = useInfiniteQuery({
+    queryKey: ['learning-sessions', 'history', filter],
+    initialPageParam: 0,
+    queryFn: ({ pageParam, signal }) => getLearningSessions({ page: pageParam, size: 20, ...(filter === 'all' ? {} : { status: filter }) }, signal),
+    getNextPageParam: last => last.hasNext ? last.page + 1 : undefined,
+    retry: false,
   })
+  const sessions = sessionsQuery.data?.pages.flatMap(page => page.content) ?? []
+  const { isPending: isLoading, isError, error, refetch } = sessionsQuery
 
   // 뉴스 제목 매칭용 목록 (실패해도 카드는 폴백 제목으로 표시)
   const { data: newsList = [] } = useQuery({
@@ -79,11 +77,6 @@ export default function LearningHistoryPage() {
   const newsMap = useMemo(
     () => new Map(newsList.map((n) => [n.id, n])),
     [newsList],
-  )
-
-  const filteredSessions = useMemo(
-    () => (filter === 'all' ? sessions : sessions.filter((s) => s.status === filter)),
-    [sessions, filter],
   )
 
   const isUnauthorized = error instanceof ApiError && error.status === 401
@@ -119,7 +112,7 @@ export default function LearningHistoryPage() {
         <p role="status" className="font-sans text-[14px] text-text-muted">
           학습 기록을 불러오는 중…
         </p>
-      ) : isError ? (
+      ) : isError && !sessions.length ? (
         <div role="alert" className="space-y-3 rounded-card bg-status-error-bg px-5 py-4">
           <p className="font-sans text-[14px] font-medium text-status-error">
             {isUnauthorized
@@ -136,7 +129,7 @@ export default function LearningHistoryPage() {
             </Button>
           )}
         </div>
-      ) : filteredSessions.length === 0 ? (
+      ) : sessions.length === 0 ? (
         <div className="rounded-card bg-surface-subtle px-5 py-8 text-center">
           <p className="font-sans text-[14px] text-text-secondary">
             {filter === 'all'
@@ -154,7 +147,7 @@ export default function LearningHistoryPage() {
         </div>
       ) : (
         <ul className="space-y-4">
-          {filteredSessions.map((session) => (
+          {sessions.map((session) => (
             <SessionCard
               key={session.id}
               session={session}
@@ -163,6 +156,8 @@ export default function LearningHistoryPage() {
           ))}
         </ul>
       )}
+      {isError && sessions.length > 0 && <p role="alert" className="text-meta text-status-error">추가 기록을 불러오지 못했어요. 표시된 기록은 유지했어요.</p>}
+      {(sessionsQuery.hasNextPage || sessionsQuery.isFetchNextPageError) && <Button variant="secondary" className="w-full" loading={sessionsQuery.isFetchingNextPage} onClick={() => void sessionsQuery.fetchNextPage()}>{sessionsQuery.isFetchNextPageError ? '추가 기록 다시 불러오기' : '학습 기록 더 보기'}</Button>}
     </Shell>
   )
 }

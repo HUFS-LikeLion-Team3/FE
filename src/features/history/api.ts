@@ -1,5 +1,6 @@
 import { z } from 'zod'
-import { request } from '@/lib/api-client'
+import { ApiError } from '@/lib/api-client'
+import { requestLearningData as request } from '@/features/learning/api/service'
 
 // ─── 학습 세션 ────────────────────────────────────────────────────────────────
 
@@ -47,7 +48,8 @@ export type SessionListParams = {
  */
 export async function getLearningSessions(
   params: SessionListParams = {},
-): Promise<LearningSession[]> {
+signal?: AbortSignal,
+): Promise<z.infer<typeof sessionListResponseSchema>> {
   const query = new URLSearchParams()
   if (params.status) query.set('status', params.status)
   if (params.sessionType) query.set('sessionType', params.sessionType)
@@ -58,8 +60,10 @@ export async function getLearningSessions(
   const data = await request(
     `/learning-sessions${qs ? `?${qs}` : ''}`,
     sessionListResponseSchema,
+    { signal },
   )
-  return data.content
+  if (data.page !== (params.page ?? 0) || (data.hasNext && !data.content.length)) throw new ApiError(502, 'contract')
+  return data
 }
 
 // ─── 뉴스 목록 (세션 → 뉴스 제목 매칭용) ────────────────────────────────────────
@@ -110,31 +114,31 @@ const SESSION_DISPLAY: Record<SessionStatus, SessionDisplay> = {
     label: '작성 중',
     tone: 'brand',
     action: '작성 이어가기',
-    href: (s) => `/news/${s.newsId}/predict`,
+    href: (s) => `/learning/${s.id}/edit`,
   },
   baseline_pending: {
     label: '기준값 확정 중',
     tone: 'muted',
     action: '결과 보기',
-    href: (s) => `/learning/${s.id}/feedback`,
+    href: (s) => `/learning/${s.id}/results`,
   },
   observing: {
     label: '관찰 중',
     tone: 'warning',
     action: '결과 보기',
-    href: (s) => `/learning/${s.id}/feedback`,
+    href: (s) => `/learning/${s.id}/results`,
   },
   reflection_pending: {
     label: '회고 대기',
     tone: 'brand',
     action: '회고하러 가기',
-    href: (s) => `/learning/${s.id}/final-feedback`,
+    href: (s) => `/learning/${s.id}/reflection`,
   },
   completed: {
     label: '학습 완료',
     tone: 'muted',
     action: '기록 보기',
-    href: (s) => `/learning/${s.id}/final-feedback`,
+    href: (s) => `/learning/${s.id}`,
   },
 }
 
