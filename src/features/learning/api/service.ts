@@ -4,11 +4,13 @@ import * as c from './contracts'
 import { horizons, type Draft, type Target } from '../model'
 
 // Mock mode is explicit, DEV-only, and never an error fallback.
-export function mockLearningEnabled() {
+// Keep the existing editor's boolean API until the page PR is merged.
+export const mockLearningEnabled = import.meta.env.DEV && import.meta.env.VITE_MOCK_LEARNING_API === 'true'
+export function isMockLearningEnabled() {
   return import.meta.env.DEV && (import.meta.env.VITE_MOCK_LEARNING_API === 'true' || sessionStorage.getItem('finsight.devMockLearning') === 'true')
 }
 async function call<T>(path: string, schema: z.ZodType<T>, options: { method?: string; body?: unknown; signal?: AbortSignal } = {}): Promise<T> {
-  if (import.meta.env.DEV && mockLearningEnabled()) return parseResponse(schema, await (await import('./unfinished-mock')).respond(path, options))
+  if (import.meta.env.DEV && isMockLearningEnabled()) return parseResponse(schema, await (await import('./unfinished-mock')).respond(path, options))
   return request(path, schema, options)
 }
 export const learningApi = {

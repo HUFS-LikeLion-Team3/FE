@@ -1,9 +1,9 @@
 import { z } from 'zod'
 import { request, parseResponse } from '@/lib/api-client'
-import { mockLearningEnabled } from '@/features/learning/api/service'
+import { isMockLearningEnabled } from '@/features/learning/api/service'
 
 async function call<T>(path: string, schema: z.ZodType<T>, options: { method?: string; body?: unknown } = {}): Promise<T> {
-  if (import.meta.env.DEV && mockLearningEnabled()) return parseResponse(schema, await (await import('@/features/learning/api/unfinished-mock')).respond(path, options))
+  if (import.meta.env.DEV && isMockLearningEnabled()) return parseResponse(schema, await (await import('@/features/learning/api/unfinished-mock')).respond(path, options))
   return request(path, schema, options)
 }
 
