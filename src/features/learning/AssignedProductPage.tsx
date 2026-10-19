@@ -37,11 +37,11 @@ export default function AssignedProductPage({ page }: { page: Page }) {
   if ((page === 'initial' || page === 'final') && data.session?.status === 'drafting') return <Navigate to={`/learning/${data.session.id}/edit`} replace />
   const start = () => {
     if (data.session) navigate(data.session.status === 'drafting' ? `/learning/${data.session.id}/edit` : `/learning/${data.session.id}/feedback`)
-    else if (mockLearningEnabled) navigate(`/news/${data.news.id}/predict`)
+    else if (mockLearningEnabled()) navigate(`/news/${data.news.id}/predict`)
     else setHandoff(true)
   }
   return <>
-    {mockLearningEnabled && <aside aria-label="개발용 API 연동 안내" className="bg-surface-subtle px-12 py-3 text-meta text-text-secondary">미완성 대상·세션·예측·회고 API는 개발용 목데이터입니다. 목 세션의 피드백·결과도 목데이터로 연결됩니다. 새로고침하면 목 저장이 초기화됩니다.</aside>}
+    {mockLearningEnabled() && <aside aria-label="개발용 API 연동 안내" className="bg-surface-subtle px-12 py-3 text-meta text-text-secondary">미완성 대상·세션·예측·회고 API는 개발용 목데이터입니다. 목 세션의 피드백·결과도 목데이터로 연결됩니다. 새로고침하면 목 저장이 초기화됩니다.</aside>}
     {page === 'news' && <NewsDetailPage data={data.news} state={data.session ? data.session.status === 'drafting' ? 'draft' : 'submitted' : 'new'} onRetry={() => void query.refetch()} onStartPrediction={start} />}
     {page === 'prediction' && (data.targets.length ? <ConnectedEditor key={newsId ?? sessionId} data={data} queryKey={queryKey} onTargetChange={() => setHandoff(true)} /> : <Shell><PageTitle label="WORKBOOK / PREDICTION" title="예측 대상을 먼저 선택해 주세요" description="관찰할 대상이 선택되면 예측을 작성할 수 있어요." /><Link to={`/news/${data.news.id}`} className={linkClass}>뉴스 상세로 돌아가기</Link></Shell>)}
     {(page === 'initial' || page === 'final') && (page === 'final' && data.session?.status !== 'completed' ? <Shell><Notice title="최종 회고를 먼저 남겨 주세요">회고를 저장한 뒤 최종 피드백을 확인할 수 있어요.</Notice><Link to={`/learning/${data.session?.id}/reflection`} className={linkClass}>회고 화면으로 이동</Link></Shell> : <FeedbackPage data={data.feedback} final={page === 'final'} state={data.feedbackState} onRetry={() => {}} canRetryGeneration={false} onRefresh={() => void query.refetch()} />)}

@@ -1,6 +1,7 @@
 import { lazy, Suspense } from 'react'
 import { createBrowserRouter, Navigate, Route, RouterProvider, Routes } from 'react-router-dom'
 
+const FlowPreviewPage = import.meta.env.DEV ? lazy(() => import('@/features/learning/FlowPreviewPage')) : null
 const AssignedProductPage = lazy(() => import('@/features/learning/AssignedProductPage'))
 const LoginPage = lazy(() => import('@/features/auth/LoginPage'))
 const KakaoCallbackPage = lazy(() => import('@/features/auth/KakaoCallbackPage'))
@@ -47,6 +48,7 @@ function AppRoutes() {
       {UiPreviewPage && <Route path="/dev/ui" element={<Suspense fallback={<p role="status">불러오는 중…</p>}><UiPreviewPage /></Suspense>} />}
       {InterestSettingPreviewPage && <Route path="/dev/onboarding" element={<Suspense fallback={<p role="status">불러오는 중…</p>}><InterestSettingPreviewPage /></Suspense>} />}
       {HomePreviewPage && <Route path="/dev/home" element={<Suspense fallback={<p role="status">불러오는 중…</p>}><HomePreviewPage /></Suspense>} />}
+      {FlowPreviewPage && <Route path="/dev/flow" element={<FlowPreviewPage />} />}
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   )

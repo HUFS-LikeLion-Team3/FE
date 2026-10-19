@@ -34,15 +34,41 @@ export const feedbackSchema = feedbackSummarySchema.extend({
   targetFeedbacks: z.array(z.object({ sessionTargetId: id, items: z.array(z.object({ id, type: z.string(), content: z.string(), referenceIds: z.array(id), sortOrder: z.number() })) })),
   references: z.array(z.object({ id, sourceDocumentId: id, chunkId: id, title: z.string(), publisher: z.string(), publishedAt: timestamp, url: httpUrl, citationLabel: z.string(), citationExcerpt: z.string(), usageContext: z.string(), contentHash: z.string() })),
 })
+const outcomeStatus = z.enum(['pending', 'ready', 'unavailable'])
+export const baselineSchema = z.object({
+  status: outcomeStatus, baselineValue: z.number().nullable(), baselineAt: timestamp.nullable(),
+  baselineSessionDate: z.string().nullable(), unit: z.string(), dataSourceName: z.string().nullable(),
+  dataSourceUrl: httpUrl.nullable(), unavailableReason: z.string().nullable(),
+  expectedBaselineDate: z.string().nullable(), baselineDeadlineDate: z.string().nullable(),
+})
+export const observationSchema = z.object({
+  horizon: predictionSchema.shape.horizon, status: outcomeStatus, exceptionStatus: z.string(),
+  observedValue: z.number().nullable(), observedAt: timestamp.nullable(), unit: z.string(),
+  unavailableReason: z.string().nullable(), expectedObservationDate: z.string().nullable(),
+  observationSessionDate: z.string().nullable(), observationDeadlineDate: z.string().nullable(),
+  observationDelaySessions: z.number(), changeValue: z.number().nullable(), changePercent: z.number().nullable(),
+  dataSourceName: z.string().nullable(), dataSourceUrl: httpUrl.nullable(), usableForAiEvidence: z.boolean(),
+})
 export const outcomesSchema = z.object({ learningSessionId: id, targets: z.array(z.object({
-  sessionTargetId: id, marketTargetId: id,
-  baseline: z.object({ status: z.enum(['pending', 'ready', 'unavailable']) }),
-  observations: z.array(z.object({ horizon: predictionSchema.shape.horizon, status: z.enum(['pending', 'ready', 'unavailable']),
-    observedValue: z.number().nullable(), observedAt: timestamp.nullable(), unit: z.string(), unavailableReason: z.string().nullable(),
-    expectedObservationDate: z.string().nullable(), changeValue: z.number().nullable(), changePercent: z.number().nullable(),
-  })),
+  sessionTargetId: id, marketTargetId: id, baseline: baselineSchema, observations: z.array(observationSchema),
 })) })
-export const notesSchema = z.array(z.object({ id, sessionTargetId: id.nullable(), reflectionType: z.enum(['day_1', 'day_5', 'final', 'replay_final']), promptKey: z.string(), body: z.string(), createdAt: timestamp }))
+export const noteSchema = z.object({ id, learningSessionId: id.optional(), sessionTargetId: id.nullable(),
+  reflectionType: z.enum(['day_1', 'day_5', 'final', 'replay_final']), promptKey: z.string(), body: z.string(),
+  createdAt: timestamp, submissionId: id.optional(), clientRequestId: id.optional(),
+})
+export const notesSchema = z.array(noteSchema)
+export const seriesSchema = z.object({ learningSessionId: id, sessionTargetId: id, marketTargetId: id,
+  series: z.array(z.object({ tradingDate: z.string(), closeValue: z.number(), unit: z.string(), dataSourceName: z.string(), dataSourceUrl: httpUrl.nullable() })),
+})
+export const eventsSchema = z.array(z.object({ id, sessionTargetId: id, horizon: z.number().nullable(),
+  eventType: z.string(), occurredAt: timestamp, detail: z.string().nullable(), dataSourceName: z.string().nullable(), dataSourceUrl: httpUrl.nullable(), createdAt: timestamp,
+}))
+export const finalReflectionSchema = z.object({ submissionId: id, clientRequestId: id,
+  notes: notesSchema, sessionStatus: z.literal('completed'), completedAt: timestamp,
+})
+export type ReflectionRequest = { clientRequestId: string; reflectionType: 'day_1' | 'day_5' | 'final'; sessionTargetId?: string; promptKey?: string; body?: string; answers?: { promptKey: 'learned' | 'missed_variable' | 'next_check'; body: string }[] }
+export type SeriesDto = z.infer<typeof seriesSchema>
+export type ObservationDto = z.infer<typeof observationSchema>
 export type SessionDto = z.infer<typeof sessionSchema>
 export type MarketDto = z.infer<typeof marketSchema>
 export type SessionTargetDto = z.infer<typeof targetsSchema>['targets'][number]
