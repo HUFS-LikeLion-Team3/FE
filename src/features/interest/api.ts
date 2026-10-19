@@ -1,5 +1,11 @@
 import { z } from 'zod'
-import { request } from '@/lib/api-client'
+import { request, parseResponse } from '@/lib/api-client'
+import { mockLearningEnabled } from '@/features/learning/api/service'
+
+async function call<T>(path: string, schema: z.ZodType<T>, options: { method?: string; body?: unknown } = {}): Promise<T> {
+  if (import.meta.env.DEV && mockLearningEnabled()) return parseResponse(schema, await (await import('@/features/learning/api/unfinished-mock')).respond(path, options))
+  return request(path, schema, options)
+}
 
 const interestItemSchema = z.object({
   interestType: z.enum(['market', 'topic']),
@@ -23,7 +29,7 @@ export type InterestItem = z.infer<typeof interestItemSchema>
  * GET /api/v1/users/me/interests
  */
 export async function getInterests(): Promise<InterestItem[]> {
-  const data = await request('/users/me/interests', interestsResponseSchema)
+  const data = await call('/users/me/interests', interestsResponseSchema)
   return data.interests.map(({ interestType, interestKey }) => ({
     interestType,
     interestKey,
@@ -37,7 +43,7 @@ export async function getInterests(): Promise<InterestItem[]> {
 export async function saveInterests(
   interests: InterestItem[],
 ): Promise<InterestItem[]> {
-  const data = await request('/users/me/interests', interestsResponseSchema, {
+  const data = await call('/users/me/interests', interestsResponseSchema, {
     method: 'PUT',
     body: { interests },
   })
@@ -52,7 +58,7 @@ export async function saveInterests(
  * PATCH /api/v1/users/me/onboarding
  */
 export async function completeOnboarding(): Promise<string> {
-  const data = await request(
+  const data = await call(
     '/users/me/onboarding',
     onboardingResponseSchema,
     { method: 'PATCH' },
