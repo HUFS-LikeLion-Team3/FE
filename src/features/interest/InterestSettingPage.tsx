@@ -1,253 +1,65 @@
-import { useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { safeInternalPath } from '@/lib/navigation'
+import { useState } from 'react'
+import { Link, useBeforeUnload, useBlocker, useNavigate } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Button } from '@/components/ui/Button'
 import { FilterChip } from '@/components/ui/FilterChip'
-import { Shell } from '@/features/learning/components/PagePrimitives'
+import { Shell, PageTitle, Notice, linkClass } from '@/features/learning/components/PagePrimitives'
+import { QueryState } from '@/features/learning/components/QueryState'
+import { Modal } from '@/features/learning/components/Modal'
 import { completeOnboarding, getInterests, saveInterests, type InterestItem } from './api'
 
-// ─── 정적 데이터 ───────────────────────────────────────────────────────────────
-
-type MarketOption = { key: string; label: string }
-type TopicOption = { key: string; label: string }
-
-const MARKET_OPTIONS: MarketOption[] = [
-  { key: 'korea', label: '국내' },
-  { key: 'us', label: '미국' },
-]
-
-const TOPIC_OPTIONS: TopicOption[] = [
-  { key: 'rate', label: '금리' },
-  { key: 'exchange_rate', label: '환율' },
-  { key: 'semiconductor', label: '반도체' },
-  { key: 'energy', label: '에너지' },
-  { key: 'price', label: '물가' },
-  { key: 'employment', label: '고용' },
-]
-
-// ─── 헬퍼 ─────────────────────────────────────────────────────────────────────
-
-/** interests[] → 선택된 시장 키 Set */
-function toMarketSet(interests: InterestItem[]): Set<string> {
-  return new Set(interests.filter(i => i.interestType === 'market').map(i => i.interestKey))
+const topics = [{ key: 'rate', label: '금리' }, { key: 'exchange_rate', label: '환율' }, { key: 'semiconductor', label: '반도체' }, { key: 'energy', label: '에너지' }, { key: 'price', label: '물가' }, { key: 'employment', label: '고용' }]
+export default function InterestSettingPage({ editing = false }: { editing?: boolean }) {
+  const query = useQuery({ queryKey: ['interests'], queryFn: getInterests, retry: false })
+  if (!query.data) return <QueryState loading={query.isPending} error={query.error} retry={() => void query.refetch()} />
+  return <>
+    {query.isError && <Notice title="최신 관심 설정을 불러오지 못했어요" error>{query.error.message} 선택한 내용은 유지했어요.<Button variant="text" onClick={() => void query.refetch()}>다시 불러오기</Button></Notice>}
+    <InterestForm key={editing ? 'settings' : 'onboarding'} initial={query.data} editing={editing} />
+  </>
 }
-
-/** interests[] → 선택된 주제 키 Set */
-function toTopicSet(interests: InterestItem[]): Set<string> {
-  return new Set(interests.filter(i => i.interestType === 'topic').map(i => i.interestKey))
-}
-
-/** "둘 다" 선택 상태 계산 */
-function marketSelectionState(selected: Set<string>): 'none' | 'korea' | 'us' | 'both' {
-  const hasKorea = selected.has('korea')
-  const hasUs = selected.has('us')
-  if (hasKorea && hasUs) return 'both'
-  if (hasKorea) return 'korea'
-  if (hasUs) return 'us'
-  return 'none'
-}
-
-// ─── 컴포넌트 ─────────────────────────────────────────────────────────────────
-
-export default function InterestSettingPage() {
+function InterestForm({ initial, editing }: { initial: InterestItem[]; editing: boolean }) {
   const navigate = useNavigate()
-  const queryClient = useQueryClient()
-
-  // 기존 관심사 조회 (설정 페이지 재방문 시 복원)
-  const {
-    data: savedInterests,
-    isLoading: isLoadingInterests,
-    isError: isLoadError,
-    refetch,
-  } = useQuery({
-    queryKey: ['interests'],
-    queryFn: getInterests,
-  })
-
-  const [selectedMarkets, setSelectedMarkets] = useState<Set<string>>(new Set())
-  const [selectedTopics, setSelectedTopics] = useState<Set<string>>(new Set())
-
-  // 조회 완료 후 저장된 관심사를 초기 선택 상태에 반영한다.
-  // (useState 초기화 함수는 1회만 실행되므로 비동기 조회 결과를 담지 못한다)
-  useEffect(() => {
-    if (!savedInterests) return
-    setSelectedMarkets(toMarketSet(savedInterests))
-    setSelectedTopics(toTopicSet(savedInterests))
-  }, [savedInterests])
-
-  // 관심사 저장 + 온보딩 완료
-  const { mutate: submit, isPending, error: saveError } = useMutation({
-    mutationFn: async () => {
-      const interests: InterestItem[] = [
-        ...Array.from(selectedMarkets).map(key => ({ interestType: 'market' as const, interestKey: key })),
-        ...Array.from(selectedTopics).map(key => ({ interestType: 'topic' as const, interestKey: key })),
-      ]
-      await saveInterests(interests)
-      await completeOnboarding()
+  const client = useQueryClient()
+  const [selected, setSelected] = useState(initial)
+  const [saved, setSaved] = useState(initial)
+  const [done, setDone] = useState(false)
+  const [allowNavigation, setAllowNavigation] = useState(false)
+  const mutation = useMutation({
+    mutationFn: async (interests: InterestItem[]) => {
+      const result = await saveInterests(interests)
+      if (!editing) await completeOnboarding()
+      return result
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['interests'] })
-      navigate('/', { replace: true })
+    onSuccess: interests => {
+      client.setQueryData(['interests'], interests)
+      void client.invalidateQueries({ queryKey: ['news'] })
+      setSaved(interests); setSelected(interests); setDone(true); setAllowNavigation(true)
+      if (!editing) {
+        const returnTo = sessionStorage.getItem('finsight.returnTo')
+        sessionStorage.removeItem('finsight.returnTo')
+        navigate(safeInternalPath(returnTo), { replace: true })
+      }
     },
   })
-
-  // 건너뛰기: 빈 관심사로 저장 후 온보딩 완료
-  const { mutate: skip, isPending: isSkipping, error: skipError } = useMutation({
-    mutationFn: async () => {
-      await saveInterests([])
-      await completeOnboarding()
-    },
-    onSuccess: () => navigate('/', { replace: true }),
-  })
-
-  // ─── 시장 토글 핸들러 ───────────────────────────────────────────────────────
-
-  function toggleMarket(key: string) {
-    setSelectedMarkets(prev => {
-      const next = new Set(prev)
-      if (next.has(key)) next.delete(key)
-      else next.add(key)
-      return next
-    })
+  const dirty = JSON.stringify(selected) !== JSON.stringify(saved)
+  const blocker = useBlocker(() => editing && !allowNavigation && (dirty || mutation.isPending))
+  useBeforeUnload(event => { if (editing && (dirty || mutation.isPending) && !allowNavigation) { event.preventDefault(); event.returnValue = '' } })
+  const has = (type: InterestItem['interestType'], key: string) => selected.some(item => item.interestType === type && item.interestKey === key)
+  const both = has('market', 'korea') && has('market', 'us')
+  const change = (interests: InterestItem[]) => { setSelected(interests); setDone(false); setAllowNavigation(false); mutation.reset() }
+  const toggleTopic = (key: string) => change(has('topic', key) ? selected.filter(item => item.interestType !== 'topic' || item.interestKey !== key) : [...selected, { interestType: 'topic', interestKey: key }])
+  const market = (key: 'korea' | 'us' | 'both') => {
+    const same = key === 'both' ? both : !both && has('market', key)
+    const values = same ? [] : key === 'both' ? ['korea', 'us'] : [key]
+    change([...selected.filter(item => item.interestType !== 'market'), ...values.map(interestKey => ({ interestType: 'market' as const, interestKey }))])
   }
-
-  function toggleBoth() {
-    const state = marketSelectionState(selectedMarkets)
-    if (state === 'both') {
-      // 이미 둘 다 선택 → 전체 해제
-      setSelectedMarkets(new Set())
-    } else {
-      // 둘 다 선택
-      setSelectedMarkets(new Set(['korea', 'us']))
-    }
-  }
-
-  function toggleTopic(key: string) {
-    setSelectedTopics(prev => {
-      const next = new Set(prev)
-      if (next.has(key)) next.delete(key)
-      else next.add(key)
-      return next
-    })
-  }
-
-  const marketState = marketSelectionState(selectedMarkets)
-  // 조회 중이거나 조회 실패 시에는 저장을 막는다.
-  // 조회가 끝나지 않은 상태에서 저장하면 기존 관심사를 빈 배열로 덮어쓸 수 있다.
-  const isBusy = isPending || isSkipping
-  const canSave = !isLoadingInterests && !isLoadError && !isBusy
-
-  return (
-    <Shell>
-      {/* 페이지 헤더 */}
-      <div className="space-y-4">
-        <p className="font-sans text-[11px] font-semibold tracking-[0.18em] text-brand-primary">
-          GETTING STARTED
-        </p>
-        <h1 className="text-page text-text-primary">어떤 경제 이야기가 궁금하세요?</h1>
-        <p className="font-sans text-[15px] text-text-secondary">
-          관심 분야를 선택하면 관련 뉴스를 먼저 보여드려요. 선택하지 않고 시작해도 괜찮아요.
-        </p>
-      </div>
-
-      {/* 조회 실패 안내: 저장 차단 + 재시도 */}
-      {isLoadError && (
-        <div role="alert" className="space-y-3 rounded-card bg-status-error-bg px-5 py-4">
-          <p className="font-sans text-[14px] font-medium text-status-error">
-            관심사를 불러오지 못했어요.
-          </p>
-          <p className="font-sans text-[13px] text-text-secondary">
-            지금 저장하면 기존 설정이 지워질 수 있어 저장을 멈췄어요. 다시 불러온 뒤 설정해 주세요.
-          </p>
-          <Button variant="secondary" onClick={() => refetch()}>
-            다시 불러오기
-          </Button>
-        </div>
-      )}
-
-      {/* 조회 중 안내 */}
-      {isLoadingInterests && (
-        <p role="status" className="font-sans text-[14px] text-text-muted">
-          기존 관심사를 불러오는 중…
-        </p>
-      )}
-
-      {/* 관심 시장 */}
-      <section className="space-y-4" aria-labelledby="market-heading">
-        <h2 id="market-heading" className="text-section text-text-primary">관심 시장</h2>
-        <div className="flex flex-wrap gap-3" role="group" aria-label="관심 시장 선택">
-          {MARKET_OPTIONS.map(({ key, label }) => (
-            <FilterChip
-              key={key}
-              selected={selectedMarkets.has(key)}
-              onClick={() => toggleMarket(key)}
-            >
-              {label}
-            </FilterChip>
-          ))}
-          <FilterChip
-            selected={marketState === 'both'}
-            onClick={toggleBoth}
-          >
-            둘 다
-          </FilterChip>
-        </div>
-      </section>
-
-      {/* 관심 주제 */}
-      <section className="space-y-4" aria-labelledby="topic-heading">
-        <h2 id="topic-heading" className="text-section text-text-primary">관심 주제</h2>
-        <p className="font-sans text-[13px] text-text-muted">복수 선택할 수 있어요.</p>
-        <div className="flex flex-wrap gap-3" role="group" aria-label="관심 주제 선택">
-          {TOPIC_OPTIONS.map(({ key, label }) => (
-            <FilterChip
-              key={key}
-              selected={selectedTopics.has(key)}
-              onClick={() => toggleTopic(key)}
-            >
-              {label}
-            </FilterChip>
-          ))}
-        </div>
-
-        {/* 안내 카드 */}
-        <div className="rounded-card bg-surface-subtle px-5 py-4 space-y-1">
-          <p className="font-sans text-[14px] font-semibold text-text-primary">
-            선택은 뉴스의 우선순위에 반영돼요.
-          </p>
-          <p className="font-sans text-[13px] text-text-secondary">
-            뉴스를 제한하지 않으며, 건너뛰면 전체 시장·주제로 시작합니다.
-          </p>
-        </div>
-      </section>
-
-      {/* 저장 오류 메시지 */}
-      {(saveError || skipError) && (
-        <p role="alert" className="rounded-control bg-status-error-bg px-3 py-2 font-sans text-[13px] text-status-error">
-          저장하지 못했어요. 다시 시도해 주세요.
-        </p>
-      )}
-
-      {/* 액션 버튼 */}
-      <div className="space-y-3">
-        <Button
-          className="w-full"
-          loading={isPending}
-          loadingLabel="저장 중…"
-          disabled={!canSave}
-          onClick={() => submit()}
-        >
-          완료하고 시작하기
-        </Button>
-        <button
-          type="button"
-          disabled={!canSave}
-          onClick={() => skip()}
-          className="w-full min-h-11 font-sans text-[14px] text-text-secondary hover:text-text-primary disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-brand-primary"
-        >
-          건너뛰기
-        </button>
-      </div>
-    </Shell>
-  )
+  return <Shell section="/"><PageTitle label={editing ? 'YOUR INTERESTS / EDIT' : 'GETTING STARTED'} title={editing ? '관심 설정을 바꿔보세요' : '어떤 경제 이야기가 궁금하세요?'} description={editing ? '저장한 관심 시장과 주제를 불러왔어요. 변경한 관심사는 홈 뉴스 추천 순서에 반영돼요.' : '관심 분야를 선택하면 관련 뉴스를 먼저 보여드려요. 선택하지 않고 시작해도 괜찮아요.'} />
+    <div className={editing ? 'max-w-[720px] space-y-8' : 'space-y-8'}><fieldset className="space-y-8" disabled={mutation.isPending}><legend className="sr-only">관심 시장과 주제 선택</legend><section className="space-y-6"><h2 className="text-section">관심 시장</h2><div className="flex gap-2" role="group" aria-label="관심 시장 선택">{([{ key: 'korea', label: '국내' }, { key: 'us', label: '미국' }, { key: 'both', label: '둘 다' }] as const).map(option => <FilterChip key={option.key} selected={option.key === 'both' ? both : !both && has('market', option.key)} onClick={() => market(option.key)}>{option.label}</FilterChip>)}</div></section><section className="space-y-6"><h2 className="text-section">관심 주제</h2><p className="text-meta text-text-muted">복수 선택할 수 있어요.</p><div className="flex flex-wrap gap-2" role="group" aria-label="관심 주제 선택">{topics.map(topic => <FilterChip key={topic.key} selected={has('topic', topic.key)} onClick={() => toggleTopic(topic.key)}>{topic.label}</FilterChip>)}</div></section></fieldset>
+      <Notice title="선택은 뉴스의 우선순위에 반영돼요.">{editing ? '선택하지 않아도 괜찮아요. 취소하면 기존 관심 설정을 유지합니다.' : '뉴스를 제한하지 않으며, 건너뛰면 전체 시장·주제로 시작합니다.'}</Notice>
+      {mutation.error && <Notice title="저장하지 못했어요" error>{mutation.error.message} 선택한 내용은 유지했어요. 다시 시도해 주세요.</Notice>}{done && <Notice title="변경을 저장했어요">다음 뉴스 조회부터 새 관심 설정을 반영해요.</Notice>}
+      <Button className="w-full" loading={mutation.isPending} onClick={() => mutation.mutate([...selected])}>{editing ? '변경 저장하기' : '완료하고 시작하기'}</Button>{editing ? <Link to="/" className={`${linkClass} w-full`}>{done ? '홈으로 돌아가기' : '취소'}</Link> : <Button variant="text" className="w-full" disabled={mutation.isPending} onClick={() => mutation.mutate([])}>건너뛰기</Button>}
+    </div>
+    {blocker.state === 'blocked' && <Modal title="저장하지 않은 관심 설정이 있어요" onClose={() => { if (!mutation.isPending) blocker.reset() }}><p className="text-ui">나가면 기존에 저장한 관심 설정을 유지해요.</p><Button disabled={mutation.isPending} onClick={() => blocker.reset()}>계속 수정하기</Button><Button variant="secondary" disabled={mutation.isPending} onClick={() => blocker.proceed()}>변경하지 않고 나가기</Button></Modal>}
+  </Shell>
 }
