@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { request } from '@/lib/api-client'
+import { requestLearningData as request } from '@/features/learning/api/service'
 
 // ─── 뉴스 목록 ────────────────────────────────────────────────────────────────
 
@@ -111,31 +111,31 @@ const SESSION_DISPLAY: Record<SessionStatus, SessionDisplay> = {
   drafting: {
     label: '작성 중 · 예측을 마저 작성해요',
     tone: 'brand',
-    href: (s) => `/news/${s.newsId}/predict`,
+    href: (s) => `/learning/${s.id}/edit`,
     action: '이어서 작성하기',
   },
   baseline_pending: {
     label: '기준값 확정 중 · 결과를 준비하고 있어요',
     tone: 'muted',
-    href: (s) => `/learning/${s.id}/feedback`,
+    href: (s) => `/learning/${s.id}/results`,
     action: '학습 보기',
   },
   observing: {
-    label: '관찰 중 · 새 결과가 있어요',
+    label: '관찰 중 · 시장 변화를 살펴봐요',
     tone: 'warning',
-    href: (s) => `/learning/${s.id}/feedback`,
+    href: (s) => `/learning/${s.id}/results`,
     action: '결과 보기',
   },
   reflection_pending: {
     label: '회고 대기 · 돌아볼 차례예요',
     tone: 'brand',
-    href: (s) => `/learning/${s.id}/final-feedback`,
+    href: (s) => `/learning/${s.id}/reflection`,
     action: '회고하러 가기',
   },
   completed: {
     label: '학습 완료',
     tone: 'muted',
-    href: (s) => `/learning/${s.id}/final-feedback`,
+    href: (s) => `/learning/${s.id}`,
     action: '다시 보기',
   },
 }
@@ -190,4 +190,13 @@ export async function getLearningSessions(
     sessionListResponseSchema,
   )
   return data.content
+}
+
+/** Query the newest session in each status, in priority order. Completed sessions cannot hide older drafts. */
+export async function getTopInProgress(signal?: AbortSignal): Promise<LearningSession | null> {
+  for (const status of IN_PROGRESS_STATUS_PRIORITY) {
+    const data = await request(`/learning-sessions?status=${status}&page=0&size=1`, sessionListResponseSchema, { signal })
+    if (data.content.length) return pickTopInProgress(data.content)
+  }
+  return null
 }

@@ -3,10 +3,9 @@ import { Link } from 'react-router-dom'
 import { ApiError } from '@/lib/api-client'
 import { Shell } from '@/features/learning/components/PagePrimitives'
 import {
-  getLearningSessions,
+  getTopInProgress,
   getNewsList,
   getSessionDisplay,
-  pickTopInProgress,
   type LearningSession,
   type NewsItem,
 } from './api'
@@ -110,14 +109,12 @@ export default function HomePage() {
       getNewsList({ sort: 'recommended', contentType: 'live', size: 10 }),
   })
 
-  // 진행 중인 학습 세션 (상태 전체 조회 후 우선순위로 1개 선택).
-  // 특정 상태만 조회하면 drafting·baseline_pending이 누락되므로 전체를 받아 클라이언트에서 고른다.
-  const { data: sessions = [] } = useQuery({
+  const sessionsQuery = useQuery({
     queryKey: ['learning-sessions', 'in-progress'],
-    queryFn: () => getLearningSessions({ size: 50 }),
+    queryFn: ({ signal }) => getTopInProgress(signal),
+    retry: false,
   })
-
-  const inProgressSession = pickTopInProgress(sessions)
+  const inProgressSession = sessionsQuery.data
 
   // 뉴스 조회 오류를 401(로그인 필요)과 그 외로 구분한다.
   const isUnauthorized = newsError instanceof ApiError && newsError.status === 401
@@ -201,6 +198,8 @@ export default function HomePage() {
         </section>
 
         {/* 우측: 이어서 학습하기 */}
+        {sessionsQuery.isPending && <p role="status" className="text-meta text-text-muted">이어서 학습할 기록을 불러오는 중…</p>}
+        {sessionsQuery.isError && <aside role="alert" className="space-y-3 rounded-card bg-status-error-bg p-5"><p className="text-meta text-status-error">{sessionsQuery.error.message}</p>{sessionsQuery.error instanceof ApiError && sessionsQuery.error.status === 401 ? <Link to="/login" className={secondaryLinkClass}>로그인하러 가기</Link> : <button className={secondaryLinkClass} onClick={() => void sessionsQuery.refetch()}>학습 기록 다시 불러오기</button>}</aside>}
         {inProgressSession && (
           <aside aria-label="이어서 학습하기" className="space-y-3">
             <h2 className="font-sans text-[17px] font-semibold text-text-primary">
