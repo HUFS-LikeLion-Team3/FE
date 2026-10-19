@@ -1,3 +1,4 @@
+import { safeInternalPath } from '@/lib/navigation'
 import { z } from 'zod'
 import { request, setAccessToken } from '@/lib/api-client'
 
@@ -53,6 +54,9 @@ export async function loginWithKakao(code: string): Promise<AuthResponse> {
 export function redirectToKakao() {
   const clientId = import.meta.env.VITE_KAKAO_CLIENT_ID
   const redirectUri = `${window.location.origin}/auth/kakao/callback`
+  const returnTo = new URLSearchParams(window.location.search).get('returnTo')
+  if (returnTo) sessionStorage.setItem('finsight.returnTo', safeInternalPath(returnTo))
+  else sessionStorage.removeItem('finsight.returnTo')
   const state = createState()
   sessionStorage.setItem(stateKey, state)
   const params = new URLSearchParams({

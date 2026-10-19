@@ -1,3 +1,5 @@
+import { safeInternalPath } from '@/lib/navigation'
+import { useQueryClient } from '@tanstack/react-query'
 import { useEffect, useRef } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { loginWithKakao, verifyState } from './api'
@@ -14,6 +16,7 @@ export default function KakaoCallbackPage() {
   const [params] = useSearchParams()
   const navigate = useNavigate()
   const called = useRef(false)
+  const client = useQueryClient()
 
   useEffect(() => {
     if (called.current) return
@@ -37,11 +40,14 @@ export default function KakaoCallbackPage() {
     loginWithKakao(code)
       .then((data) => {
         // 신규 가입자는 온보딩, 기존 회원은 홈으로 이동
-        const next = data.user.onboardingCompleted ? '/' : '/onboarding'
+        client.clear()
+        const returnTo = sessionStorage.getItem('finsight.returnTo')
+        const next = data.user.onboardingCompleted ? safeInternalPath(returnTo) : '/onboarding'
+        if (data.user.onboardingCompleted) sessionStorage.removeItem('finsight.returnTo')
         navigate(next, { replace: true })
       })
       .catch(() => navigate('/login?error=auth_failed', { replace: true }))
-  }, [params, navigate])
+  }, [params, navigate, client])
 
   return (
     <main className="flex min-h-screen items-center justify-center">
