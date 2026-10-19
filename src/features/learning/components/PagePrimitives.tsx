@@ -6,9 +6,9 @@ import { cn } from '@/lib/cn'
 import type { Source, Target } from '../model'
 
 export const linkClass = 'inline-flex min-h-12 items-center justify-center rounded-control px-4 py-3 text-control focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-pressed hover:bg-brand-subtle'
-export function Shell({ children }: { children: ReactNode }) {
+export function Shell({ children, section }: { children: ReactNode; section?: string }) {
   const { pathname } = useLocation()
-  const activeSection = pathname.endsWith('/predict') || pathname.endsWith('/edit') ? '/' : pathname.startsWith('/news/') ? '/explore' : pathname.startsWith('/learning') ? '/learning' : pathname
+  const activeSection = section ?? (pathname.endsWith('/predict') || pathname.endsWith('/edit') ? '/' : pathname.startsWith('/news/') ? '/explore' : pathname.startsWith('/learning') ? '/learning' : pathname)
   return <div className="mx-auto max-w-[1296px] px-12">
     <header className="border-b border-border-default py-6"><div className="flex items-start gap-6">
       <Link to="/" className="flex-1 font-serif text-[28px] font-bold leading-[38px] focus-visible:outline-2 focus-visible:outline-brand-primary">FinSight</Link>
@@ -23,8 +23,8 @@ export function Shell({ children }: { children: ReactNode }) {
 export function PageTitle({ label, title, description }: { label: string; title: string; description: string }) {
   return <div className="space-y-8"><p className="font-mono text-label text-brand-primary">{label}</p><h1 className="text-page">{title}</h1><p className="text-ui text-text-secondary">{description}</p></div>
 }
-export function Notice({ title, children, error = false }: { title: string; children: ReactNode; error?: boolean }) {
-  return <div role={error ? 'alert' : 'status'} className={cn('space-y-2 rounded-card p-4', error ? 'bg-status-error-bg' : 'bg-surface-subtle')}><p className={cn('text-control font-medium', error && 'text-status-error')}>{title}</p><div className="text-meta text-text-secondary">{children}</div></div>
+export function Notice({ title, children, error = false, className }: { title: string; children: ReactNode; error?: boolean; className?: string }) {
+  return <div role={error ? 'alert' : 'status'} className={cn('space-y-2 rounded-card p-4', error ? 'bg-status-error-bg' : 'bg-surface-subtle', className)}><p className={cn('text-control font-medium', error && 'text-status-error')}>{title}</p><div className="text-meta text-text-secondary">{children}</div></div>
 }
 export function SourceCard({ source }: { source: Source }) {
   return <article className="space-y-2 rounded-card bg-surface-subtle p-4"><h3 className="text-control font-medium">{source.title}</h3><p className="text-meta text-text-muted">{source.publisher} · {source.date}</p>{source.quote && <blockquote className="text-meta text-text-secondary">{source.quote}</blockquote>}<a href={source.url} target="_blank" rel="noopener noreferrer" className={cn(linkClass, 'w-full')}>원문 보기 ↗<span className="sr-only"> (새 탭)</span></a></article>

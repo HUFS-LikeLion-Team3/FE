@@ -1,7 +1,7 @@
 import { ApiError } from '@/lib/api-client'
 import { horizons, type Draft, type FeedbackItem, type FeedbackState, type FeedbackView, type NewsView, type Source, type Target } from '../model'
 import type { MarketDto, SessionDto } from './contracts'
-import { learningApi as api, mockLearningEnabled } from './service'
+import { learningApi as api } from './service'
 
 export function formatTime(value: string | null | undefined) {
   if (!value) return '아직 없음'
@@ -13,29 +13,32 @@ export function blankDraft(targets: Target[]): Draft {
 }
 export function toTarget(market: MarketDto, sessionTargetId?: string): Target {
   return { id: sessionTargetId ?? market.id, marketTargetId: market.id, name: market.displayName,
-    kind: market.targetType === 'yield' || market.marketCategory === 'rate' ? 'rate' : market.targetType === 'currency_pair' || market.targetType === 'exchange_rate' ? 'fx' : 'index',
+    kind: market.targetType === 'yield' || market.marketCategory === 'rate' ? 'rate' : market.marketCategory === 'fx' || market.targetType === 'currency_pair' || market.targetType === 'exchange_rate' ? 'fx' : 'index',
     directionLabels: market.directionLabels,
     referenceMarket: market.referenceMarket ? { ...market.referenceMarket, asOf: market.referenceMarket.asOfAt ? formatTime(market.referenceMarket.asOfAt) : null, sourceName: market.referenceMarket.dataSourceName, sourceUrl: market.referenceMarket.dataSourceUrl } : undefined,
   }
 }
 export async function loadNews(newsId: string, signal?: AbortSignal): Promise<NewsView> {
   const [news, facts, sources, candidates] = await Promise.all([api.news(newsId, signal), api.facts(newsId, signal), api.sources(newsId, signal), api.candidates(newsId, signal)])
+  if (news.id !== newsId) throw new ApiError(502, 'contract')
   const primary = sources.sources.find(s => s.isPrimary)
   return { id: news.id, title: news.title, category: news.category, publisher: primary?.publisher ?? '발행처 정보 없음', publishedAt: formatTime(news.publishedAt),
     originalUrl: primary?.url ?? null, originalLabel: '대표 출처 보기 ↗',
     briefing: [{ title: '주요 내용', body: news.briefing }], context: null, term: null,
     facts: [...facts.facts].sort((a, b) => a.sortOrder - b.sortOrder).map(f => ({ id: f.id, label: f.label, value: f.valueText, unit: f.unit ?? '', asOf: f.asOfAt ? formatTime(f.asOfAt) : null })),
     sources: sources.sources.map(s => ({ id: s.id, title: s.title, publisher: s.publisher, date: formatTime(s.publishedAt), quote: '', url: s.url })),
-    targets: [...candidates.candidates].sort((a, b) => a.sortOrder - b.sortOrder).map(c => toTarget({ ...c, id: c.marketTargetId })),
+    targets: [...candidates.candidates].sort((a, b) => a.sortOrder - b.sortOrder).map(c => ({ ...toTarget({ ...c, id: c.marketTargetId }), rationale: c.rationale })),
   }
 }
 export async function loadSaved(session: SessionDto, signal?: AbortSignal) {
   const response = await api.targets(session.id, signal)
+  if (response.learningSessionId !== session.id) throw new ApiError(502, 'contract')
   const selected = response.targets.filter(t => t.isSelected).sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0))
   const targets = await Promise.all(selected.map(async target => toTarget(await api.market(target.marketTargetId, signal), target.sessionTargetId)))
   const draft = blankDraft(targets)
   await Promise.all(targets.map(async target => {
     const saved = await api.predictions(session.id, target.id, signal)
+    if (saved.sessionTargetId !== target.id) throw new ApiError(502, 'contract')
     for (const p of saved.predictions) draft[target.id][p.horizon] = { direction: p.direction, reason: p.reason ?? '' }
   }))
   return { targets, draft }
@@ -49,12 +52,22 @@ export async function loadPage(page: 'news' | 'prediction' | 'initial' | 'final'
   if (!session) session = (await api.sessions(id, signal)).content[0] ?? null
   const saved = session ? cachedPage?.session?.id === session.id && cachedPage.session.status !== 'drafting' ? { targets: cachedPage.targets, draft: cachedPage.draft } : await loadSaved(session, signal) : { targets: news.targets.filter(t => selectedIds.includes(t.id)), draft: {} as Draft }
   if (!session) {
-    // Only the explicit DEV mock supplies a selection; the other owner's selector passes ?targets=UUID,... in real mode.
-    if (!saved.targets.length && mockLearningEnabled) saved.targets = news.targets.slice(0, 2)
+    if (selectedIds.length > 3 || new Set(selectedIds).size !== selectedIds.length || selectedIds.some(id => !news.targets.some(t => t.id === id))) throw new ApiError(400)
     if (page === 'prediction') saved.targets = await Promise.all(saved.targets.map(async target => toTarget(await api.market(target.id, signal))))
     saved.draft = blankDraft(saved.targets)
   }
-  const result: PageData = { news, session, ...saved, feedback: null, feedbackState: 'ready', poll: false }
+  const result: PageData = { news: session && page !== 'prediction' ? { ...news, targets: saved.targets } : news, session, ...saved, feedback: null, feedbackState: 'ready', poll: false }
+  if (page === 'prediction' && session?.status === 'drafting') {
+    const all = await api.targets(session.id, signal)
+    const bank: Draft = {}
+    await Promise.all(all.targets.map(async target => {
+      const stored = await api.predictions(session!.id, target.sessionTargetId, signal)
+      bank[target.marketTargetId] = blankDraft([{ id: target.marketTargetId } as Target])[target.marketTargetId]
+      for (const p of stored.predictions) bank[target.marketTargetId][p.horizon] = { direction: p.direction, reason: p.reason ?? '' }
+    }))
+    result.targets = saved.targets.map(t => ({ ...t, id: t.marketTargetId ?? t.id }))
+    result.draft = bank
+  }
   if (page === 'news' || page === 'prediction' || !session || session.status === 'drafting' || (page === 'final' && session.status !== 'completed')) return result
   const stage = page === 'final' ? 'final' : 'initial'
   const [summaries, outcomes, notes] = await Promise.all([api.feedbacks(session.id, signal), api.outcomes(session.id, signal), stage === 'final' ? api.notes(session.id, signal) : Promise.resolve([])])
