@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { useRef, useState, type ReactNode } from 'react'
 import { Link, useBeforeUnload, useBlocker, useNavigate } from 'react-router-dom'
 import { Button } from '@/components/ui/Button'
 import { Choice } from '@/components/ui/Choice'
@@ -11,17 +11,17 @@ import { ApiError } from '@/lib/api-client'
 import type { Session } from './session-context'
 
 export type EditorSession = Pick<Session, 'draft' | 'setDraft' | 'savedAt' | 'discard' | 'dirty'>
-type Props = { news: NewsView; newsHref: string; feedbackHref: string; session: EditorSession; targets: Target[]; onRequestTargetChange: () => void; onSave: () => Promise<void>; onSubmit: () => Promise<string | void> }
-export default function PredictionPage({ news, newsHref, feedbackHref, session, targets, onRequestTargetChange, onSave, onSubmit }: Props) {
+type Props = { news: NewsView; newsHref: string; feedbackHref: string; session: EditorSession; targets: Target[]; selection?: ReactNode; onRequestTargetChange: () => void; onSave: () => Promise<void>; onSubmit: () => Promise<string | void> }
+export default function PredictionPage({ news, newsHref, feedbackHref, session, targets, onRequestTargetChange, onSave, onSubmit, selection }: Props) {
   const navigate = useNavigate()
-  const [active, setActive] = useState(targets[0].id)
+  const [active, setActive] = useState(targets[0]?.id ?? '')
   const [review, setReview] = useState(false)
-  const [expanded, setExpanded] = useState(targets[0].id)
+  const [expanded, setExpanded] = useState(targets[0]?.id ?? '')
   const [error, setError] = useState<string | null>(null)
   const [actionError, setActionError] = useState<string | null>(null)
   const [busy, setBusy] = useState<'save' | 'submit' | null>(null)
   const allowNavigation = useRef(false)
-  const blocker = useBlocker(({ currentLocation, nextLocation }) => session.dirty && !allowNavigation.current && currentLocation.pathname !== nextLocation.pathname)
+  const blocker = useBlocker(({ currentLocation, nextLocation }) => session.dirty && !allowNavigation.current && (currentLocation.pathname !== nextLocation.pathname || currentLocation.search !== nextLocation.search))
   useBeforeUnload(event => { if (session.dirty && !allowNavigation.current) { event.preventDefault(); event.returnValue = '' } })
   const target = targets.find(t => t.id === active) ?? targets[0]
   const index = targets.findIndex(t => t.id === target.id)
@@ -56,6 +56,8 @@ export default function PredictionPage({ news, newsHref, feedbackHref, session, 
     navigate(destination || feedbackHref)
   }
   const closeReview = () => { if (!busy) { setReview(false); setActionError(null) } }
+  if (selection) return <>{selection}{blocker.state === 'blocked' && <Modal title="저장하지 않은 변경이 있어요" onClose={() => blocker.reset()}><p className="text-ui">선택과 입력은 자동 저장되지 않아요.</p><Button onClick={() => blocker.reset()}>계속 작성하기</Button><Button variant="secondary" onClick={() => blocker.proceed()}>저장하지 않고 나가기</Button></Modal>}</>
+  if (!target) return null
   return <Shell><PageTitle label="WORKBOOK / PREDICTION" title="나의 생각을 기록해 보세요" description="먼저 내 관점으로 예상하고, 제출 후 AI 피드백을 살펴보세요." />
     <div className="text-center"><Link to={newsHref} className={linkClass}>← 작성 화면 나가기</Link></div>
     <fieldset disabled={!!busy} className="min-w-0 space-y-8"><legend className="sr-only">대상별 예측 작성</legend>
