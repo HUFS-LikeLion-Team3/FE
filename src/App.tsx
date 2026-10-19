@@ -9,6 +9,7 @@ const AssignedProductPage = lazy(() => import('@/features/learning/AssignedProdu
 const LoginPage = lazy(() => import('@/features/auth/LoginPage'))
 const KakaoCallbackPage = lazy(() => import('@/features/auth/KakaoCallbackPage'))
 const InterestSettingPage = lazy(() => import('@/features/interest/InterestSettingPage'))
+const NewsExplorePage = lazy(() => import('@/features/explore/NewsExplorePage'))
 const HomePage = lazy(() => import('@/features/home/HomePage'))
 const LearningHistoryPage = lazy(() => import('@/features/history/LearningHistoryPage'))
 const PolicyPage = lazy(() => import('@/features/auth/PolicyPage'))
@@ -19,16 +20,6 @@ const AssignedPreviewApp = import.meta.env.DEV ? lazy(() => import('@/features/l
 const InterestSettingPreviewPage = import.meta.env.DEV ? lazy(() => import('@/features/interest/InterestSettingPreviewPage')) : null
 const HomePreviewPage = import.meta.env.DEV ? lazy(() => import('@/features/home/HomePreviewPage')) : null
 const LearningHistoryPreviewPage = import.meta.env.DEV ? lazy(() => import('@/features/history/LearningHistoryPreviewPage')) : null
-
-function PlaceholderPage({ title, description }: { title: string; description: string }) {
-  return (
-    <main className="mx-auto flex min-h-screen max-w-5xl flex-col justify-center px-6 py-16">
-      <p className="text-sm font-semibold tracking-[0.16em] text-teal-700">FINSIGHT</p>
-      <h1 className="mt-3 text-4xl font-bold tracking-tight text-slate-950">{title}</h1>
-      <p className="mt-4 max-w-xl text-base leading-7 text-slate-600">{description}</p>
-    </main>
-  )
-}
 
 function AppRoutes() {
   return (
@@ -43,7 +34,7 @@ function AppRoutes() {
       <Route path="/onboarding" element={<Suspense fallback={<p role="status">불러오는 중…</p>}><InterestSettingPage /></Suspense>} />
       <Route path="/terms" element={<Suspense fallback={<p role="status">불러오는 중…</p>}><PolicyPage kind="terms" /></Suspense>} />
       <Route path="/privacy" element={<Suspense fallback={<p role="status">불러오는 중…</p>}><PolicyPage kind="privacy" /></Suspense>} />
-      <Route path="/explore" element={<PlaceholderPage title="뉴스 탐색" description="큐레이션 뉴스 목록 화면이 들어갈 자리입니다." />} />
+      <Route path="/explore" element={<NewsExplorePage />} />
       <Route path="/news/:newsId" element={<AssignedProductPage page="news" />} />
       <Route path="/news/:newsId/predict" element={<AssignedProductPage page="prediction" />} />
       <Route path="/learning/:sessionId/edit" element={<AssignedProductPage page="prediction" />} />

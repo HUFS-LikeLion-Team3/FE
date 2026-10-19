@@ -14,7 +14,7 @@ export const demoSessionIds = {
 const marketIds = ['f0000000-0000-4000-8000-000000000001', 'f0000000-0000-4000-8000-000000000002', 'f0000000-0000-4000-8000-000000000003']
 const markets: MarketDto[] = [
   { id: marketIds[0], displayName: '달러 인덱스', marketCategory: 'fx', targetType: 'index', unit: 'pt', directionLabels: { up: '상승 예상', down: '하락 예상', neutral: '큰 방향성 없음' } },
-  { id: marketIds[1], displayName: 'NASDAQ 100', marketCategory: 'equity', targetType: 'index', unit: 'pt', directionLabels: { up: '상승 예상', down: '하락 예상', neutral: '큰 방향성 없음' } },
+  { id: marketIds[1], displayName: 'NASDAQ 100', marketCategory: 'us_equity', targetType: 'index', unit: 'pt', directionLabels: { up: '상승 예상', down: '하락 예상', neutral: '큰 방향성 없음' } },
   { id: marketIds[2], displayName: '미국 10년물 국채금리', marketCategory: 'rate', targetType: 'yield', unit: '%', directionLabels: { up: '금리 상승', down: '금리 하락', neutral: '큰 방향성 없음' } },
 ]
 type Prediction = { horizon: 1 | 5 | 20; direction: 'up' | 'down' | 'neutral' | null; reason: string | null }
@@ -81,7 +81,12 @@ export async function respond(path: string, options: { method?: string; body?: u
   if (parts[0] === 'news') {
     const id = parts[1] ?? demoNewsId
     const news = { id, title: '정책금리 동결 발표: 발표문에서 확인할 사실', category: 'rate', briefing: '개발용 뉴스 예시입니다. 정책 발표와 시장의 관측값을 구분해 살펴보세요.', publishedAt: fixtureTime, contentType: 'live', replayStatus: 'not_applicable' }
-    if (!parts[1]) return { content: [news], page: 0, size: 10, hasNext: false }
+    if (!parts[1]) {
+      const page = Number(url.searchParams.get('page') ?? 0), size = Number(url.searchParams.get('size') ?? 10)
+      const market = url.searchParams.get('market'), category = url.searchParams.get('category')
+      const values = market === 'korea' || category && category !== news.category ? [] : [news]
+      return { content: values.slice(page * size, (page + 1) * size), page, size, hasNext: (page + 1) * size < values.length }
+    }
     if (!parts[2]) return news
     if (parts[2] === 'facts') return { facts: [{ id: crypto.randomUUID(), label: '정책금리', valueText: '4.00', unit: '%', asOfAt: fixtureTime, sortOrder: 1 }] }
     if (parts[2] === 'sources') return { sources: [{ id: crypto.randomUUID(), title: '개발용 출처 예시', publisher: '개발용 목자료', url: 'https://www.federalreserve.gov/', publishedAt: fixtureTime, isPrimary: true }] }
