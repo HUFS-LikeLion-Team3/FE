@@ -1,7 +1,7 @@
 export const horizons = [1, 5, 20] as const
 export type Horizon = typeof horizons[number]
 export type Direction = 'up' | 'down' | 'neutral'
-export type Target = { id: string; name: string; kind: 'index' | 'fx' | 'rate'; marketTargetId?: string; directionLabels?: Record<Direction, string>; referenceMarket?: ReferenceMarket }
+export type Target = { id: string; name: string; kind: 'index' | 'fx' | 'rate'; marketTargetId?: string; rationale?: string; directionLabels?: Record<Direction, string>; referenceMarket?: ReferenceMarket }
 export type ReferenceMarket = { status: 'ready' | 'pending' | 'unavailable'; value: number | null; unit: string; asOf: string | null; changeValue: number | null; changePercent: number | null; sourceName: string | null; sourceUrl: string | null; unavailableReason: string | null }
 export type Prediction = { direction: Direction | null; reason: string }
 export type Draft = Record<string, Record<Horizon, Prediction>>
