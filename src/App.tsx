@@ -45,6 +45,7 @@ function AppRoutes() {
       {UiPreviewPage && <Route path="/dev/ui" element={<Suspense fallback={<p role="status">불러오는 중…</p>}><UiPreviewPage /></Suspense>} />}
       {InterestSettingPreviewPage && <Route path="/dev/onboarding" element={<Suspense fallback={<p role="status">불러오는 중…</p>}><InterestSettingPreviewPage /></Suspense>} />}
       {FlowPreviewPage && <Route path="/dev/flow" element={<FlowPreviewPage />} />}
+      <Route path="/settings/interests" element={<InterestSettingPage editing />} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   )
