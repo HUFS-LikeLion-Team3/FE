@@ -2,18 +2,22 @@ import { useState, type ReactNode } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { Button } from '@/components/ui/Button'
 import { FilterChip } from '@/components/ui/FilterChip'
+import { setAccessToken } from '@/lib/api-client'
+import { useQueryClient } from '@tanstack/react-query'
 import { cn } from '@/lib/cn'
 import type { Source, Target } from '../model'
 
 export const linkClass = 'inline-flex min-h-12 items-center justify-center rounded-control px-4 py-3 text-control focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-pressed hover:bg-brand-subtle'
 export function Shell({ children, section }: { children: ReactNode; section?: string }) {
   const { pathname } = useLocation()
+  const [accountOpen, setAccountOpen] = useState(false)
+  const client = useQueryClient()
   const activeSection = section ?? (pathname.endsWith('/predict') || pathname.endsWith('/edit') ? '/' : pathname.startsWith('/news/') ? '/explore' : pathname.startsWith('/learning') ? '/learning' : pathname)
   return <div className="mx-auto max-w-[1296px] px-12">
     <header className="border-b border-border-default py-6"><div className="flex items-start gap-6">
       <Link to="/" className="flex-1 font-serif text-[28px] font-bold leading-[38px] focus-visible:outline-2 focus-visible:outline-brand-primary">FinSight</Link>
       <nav aria-label="주 메뉴" className="flex gap-6">{[['/', '홈'], ['/explore', '뉴스 탐색'], ['/learning', '학습 기록']].map(([to, name]) => <Link key={to} to={to} aria-current={activeSection === to ? 'page' : undefined} className={cn(linkClass, 'w-[120px]', activeSection === to ? 'text-brand-primary' : 'text-text-secondary')}>{name}</Link>)}
-        <Link to="/login" className={cn(linkClass, 'w-[120px]')}>계정</Link>
+        <div className="relative"><Button variant="text" className="w-[120px]" aria-expanded={accountOpen} aria-controls="account-options" onClick={() => setAccountOpen(!accountOpen)}>계정</Button>{accountOpen && <div id="account-options" className="absolute right-0 z-20 w-48 rounded-card border border-border-default bg-surface-canvas p-2 shadow-lg"><Link to="/settings/interests" className={`${linkClass} w-full`}>관심 설정 변경</Link><Link to="/login" className={`${linkClass} w-full`}>로그인</Link><Link to="/login" className={`${linkClass} w-full`} onClick={() => { setAccessToken(null); client.clear() }}>로그아웃</Link></div>}</div>
       </nav>
     </div></header>
     <main className="space-y-8 py-12">{children}</main>
