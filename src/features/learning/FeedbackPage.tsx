@@ -1,10 +1,12 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Button } from '@/components/ui/Button'
+import { Modal } from './components/Modal'
 import { linkClass, Notice, PageTitle, Shell, SourceCard, SourcesOverview, TargetSwitcher } from './components/PagePrimitives'
 import { directionLabel, horizons, type FeedbackState, type FeedbackView } from './model'
 
 export default function FeedbackPage({ data, final = false, state = 'ready', onRetry, routeBase = '', onRefresh, canRetryGeneration = true }: { data: FeedbackView | null; final?: boolean; state?: FeedbackState; onRetry: () => void; routeBase?: string; onRefresh?: () => void; canRetryGeneration?: boolean }) {
+  const [reflectionOpen, setReflectionOpen] = useState(false)
   const [active, setActive] = useState(data?.targets[0]?.id ?? '')
   if (!data || !data.targets.length) return <Shell><PageTitle label="AI REVIEW" description="저장한 학습 기록을 확인해 주세요." title={final ? '최종 AI 피드백' : '최초 AI 피드백'} /><Notice title="피드백이 아직 없어요">학습 기록에서 제출 상태를 확인해 주세요.</Notice><Link to="/learning" className={linkClass}>학습 기록 보기</Link></Shell>
   const { targets, draft, reflection, observation, sessionId } = data
@@ -18,7 +20,7 @@ export default function FeedbackPage({ data, final = false, state = 'ready', onR
       <TargetSwitcher targets={targets} active={active} onChange={setActive} />
       <div className="grid grid-cols-[minmax(0,3fr)_minmax(0,5fr)] items-start gap-12">
         <aside className="min-w-0 space-y-6 rounded-card bg-surface-subtle p-6"><p className="font-mono text-label text-brand-primary">MY {final ? 'REFLECTION' : 'PREDICTION'}</p><h2 className="text-section">{final ? '저장한 회고' : '내가 남긴 판단'}</h2>
-          {final && <><p className="whitespace-pre-wrap text-ui">{reflection || '저장된 회고가 없어요.'}</p><p className="text-meta text-text-muted">저장 {data.reflectionSavedAt ?? '시각 정보 없음'}</p><Link to={`${routeBase}/learning/${sessionId}/reflection`} className={`${linkClass} w-full border border-border-default bg-surface-canvas`}>저장한 회고 보기</Link></>}
+          {final && <><p className="whitespace-pre-wrap text-ui">{reflection || '저장된 회고가 없어요.'}</p><p className="text-meta text-text-muted">저장 {data.reflectionSavedAt ?? '시각 정보 없음'}</p><Button variant="secondary" className="w-full" onClick={() => setReflectionOpen(true)}>저장한 회고 보기</Button></>}
           <div className="space-y-4 border-t border-border-default pt-6">{horizons.map(h => <section key={h}><h3 className="text-control font-medium">{h}거래일 · {directionLabel(target, draft[target.id][h].direction)}</h3><p className="mt-2 whitespace-pre-wrap break-words text-meta text-text-secondary">{draft[target.id][h].reason.trim() ? draft[target.id][h].reason : '판단 이유를 기록하지 않았어요.'}</p></section>)}</div>
           {final && <details className="border-t border-border-default pt-4"><summary className="min-h-11 cursor-pointer text-control focus-visible:outline-2 focus-visible:outline-brand-primary">관찰 기록과 중간 메모</summary><div className="space-y-3 py-4 text-meta text-text-secondary">{data.midNotes?.[target.id]?.length ? data.midNotes[target.id].map((note, i) => <p key={i}>{note}</p>) : <p>1·5거래일 메모: 아직 기록한 메모가 없어요.</p>}{data.observationRecords ? data.observationRecords[target.id]?.map(record => <p key={record.horizon}>{record.horizon}거래일 · {record.text}</p>) : horizons.map(h => <p key={h}>{h}거래일 · {state === 'unavailable' ? '관측 불가 · 기준 자료를 확보하지 못했어요.' : '[관찰값 · 단위 · 기준 시각]'} </p>)}</div></details>}
         </aside>
@@ -30,5 +32,6 @@ export default function FeedbackPage({ data, final = false, state = 'ready', onR
         </div>
       </div>
     </>}
+    {reflectionOpen && <Modal title="저장한 회고" onClose={() => setReflectionOpen(false)}><p className="whitespace-pre-wrap text-ui">{reflection || '저장된 회고가 없어요.'}</p><p className="text-meta text-text-muted">저장 {data.reflectionSavedAt ?? '시각 정보 없음'}</p><Button onClick={() => setReflectionOpen(false)}>닫기</Button></Modal>}
   </Shell>
 }
