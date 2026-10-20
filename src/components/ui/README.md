@@ -1,6 +1,6 @@
 # 공용 UI
 
-Figma `02 · Design System / Components`의 Button(159:41), TextField(159:69), Choice(159:101), FilterChip(159:114)를 기준으로 구현한다. 문서: `FinSight_디자인시스템_설계.md`.
+Figma `02 · Design System / Components`의 Button(159:41), TextField(159:69), Choice(159:101), FilterChip(159:114)를 기준으로 구현한다. 시각 기준: [Figma Components](https://www.figma.com/design/qnwfwZtYuzz6YwibShM2JE/Finsight?node-id=159-16).
 
 - `Button`: `variant="primary|secondary|text"`, `loading`, `loadingLabel`. 기본 type은 button이며 폼 제출은 `type="submit"`을 명시한다. 로딩 중에는 재클릭을 차단한다.
 - `TextField` / `TextArea`: 필수 `label`, 선택 `helperText`, `error`. native input/textarea props와 ref를 전달한다. 오류 안내는 aria-invalid/aria-describedby로 연결한다. readOnly는 포커스·복사가 가능하고 disabled는 조작·폼 제출에서 제외된다.
@@ -11,6 +11,6 @@ Figma `02 · Design System / Components`의 Button(159:41), TextField(159:69), C
 
 Tailwind v4 토큰은 src/styles/tokens.css, 자체 호스팅 폰트는 src/styles/fonts.css에서 관리한다. 제목은 text-hero/page/section/news-title, 뉴스 본문은 text-news-body, UI는 text-ui/control/meta, 숫자는 text-number를 사용한다. 한글 라벨에는 font-mono를 사용하지 않는다.
 
-`pnpm dev` 후 `/dev/ui`에서 상태·키보드 동작·모바일 배치를 확인한다. 해당 라우트는 개발 환경에만 포함된다. 실제 기능 화면은 아직 scaffold 상태다.
+`pnpm dev` 후 `/dev/ui`에서 상태·키보드 동작·모바일 배치를 확인한다. 해당 라우트는 개발 환경에만 포함된다. 기능 화면에서는 같은 공용 컴포넌트를 재사용한다.
 
 입력 필드 경계에는 border-control(#8A8397)을 사용한다. 흰 입력 배경과 3.64:1, 주변 surface-subtle과 3.37:1 대비를 확보한다. 비활성 입력에는 기존 border-default를 사용한다.
