@@ -49,7 +49,11 @@ export async function loadPage(page: 'news' | 'prediction' | 'initial' | 'final'
   const id = session?.newsId ?? newsId
   if (!id) throw new ApiError(400)
   const news = cachedPage?.news.id === id ? cachedPage.news : await loadNews(id, signal)
-  if (!session) session = (await api.sessions(id, signal)).content[0] ?? null
+  if (!session) {
+    const summary = (await api.sessions(id, signal)).content[0]
+    if (summary) session = await api.session(summary.id, signal)
+  }
+  if (session && session.newsId !== id) throw new ApiError(502, 'contract')
   const saved = session ? cachedPage?.session?.id === session.id && cachedPage.session.status !== 'drafting' ? { targets: cachedPage.targets, draft: cachedPage.draft } : await loadSaved(session, signal) : { targets: news.targets.filter(t => selectedIds.includes(t.id)), draft: {} as Draft }
   if (!session) {
     if (selectedIds.length > 3 || new Set(selectedIds).size !== selectedIds.length || selectedIds.some(id => !news.targets.some(t => t.id === id))) throw new ApiError(400)

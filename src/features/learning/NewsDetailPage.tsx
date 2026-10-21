@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { categoryLabel } from '@/features/news/category'
 import { Link } from 'react-router-dom'
 import { Button } from '@/components/ui/Button'
 import { Modal } from './components/Modal'
@@ -10,7 +11,7 @@ export default function NewsDetailPage({ data, onStartPrediction, onRetry, state
   const [termOpen, setTermOpen] = useState(false)
   return <Shell><div className="text-center"><Link to="/explore" className={linkClass}>← 뉴스 탐색으로 돌아가기</Link></div>
     {!news || state === 'loading' || state === 'unavailable' ? <Notice title={state === 'loading' ? '뉴스를 불러오고 있어요' : '뉴스를 표시하지 못했어요'}>뉴스 탐색에서 다른 뉴스를 확인할 수 있어요.{state !== 'loading' && <Button className="mt-4" onClick={onRetry}>다시 불러오기</Button>}</Notice> : <div className="grid grid-cols-[minmax(0,5fr)_minmax(0,3fr)] items-start gap-12">
-      <article className="min-w-0 space-y-6"><p className="text-control text-brand-primary">{news.category}</p><h1 className="text-page">{news.title}</h1><p className="text-meta text-text-muted">{news.publisher} · {news.publishedAt}</p>
+      <article className="min-w-0 space-y-6"><p className="text-control text-brand-primary">{categoryLabel(news.category)}</p><h1 className="text-page">{news.title}</h1><p className="text-meta text-text-muted">{news.publisher} · {news.publishedAt}</p>
         <section className="space-y-6 border-y border-border-default py-6"><h2 className="text-section">학습용 뉴스 브리핑</h2>{news.briefing.map((item, i) => <div key={item.title} className="space-y-6"><h3 className="text-control text-brand-primary">0{i + 1} / {item.title}</h3><p className="text-news-body">{item.body}</p></div>)}</section>
         {news.context && <section className="space-y-6"><h2 className="text-section">배경 맥락</h2><p className="text-news-body">{news.context}</p></section>}
         {news.term && <section className="space-y-6"><h2 className="text-section">용어 살펴보기</h2><Button variant="secondary" className="w-full" onClick={() => setTermOpen(true)}>{news.term.name} 뜻 보기</Button></section>}

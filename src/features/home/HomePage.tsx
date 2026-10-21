@@ -1,6 +1,8 @@
 import { useQuery } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
 import { ApiError } from '@/lib/api-client'
+import { categoryLabel } from '@/features/news/category'
+import { NewsPublisher } from './NewsPublisher'
 import { Shell } from '@/features/learning/components/PagePrimitives'
 import {
   getTopInProgress,
@@ -13,21 +15,6 @@ import {
 // 버튼처럼 보이는 링크용 클래스 (Button primary/secondary 스타일과 동일)
 const primaryLinkClass = 'inline-flex min-h-12 w-full items-center justify-center rounded-control border border-transparent bg-brand-primary px-4 py-3 font-sans text-[15px] font-medium text-surface-canvas hover:bg-brand-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-pressed'
 const secondaryLinkClass = 'inline-flex min-h-12 w-full items-center justify-center rounded-control border border-border-default bg-surface-canvas px-4 py-3 font-sans text-[15px] font-medium text-text-primary hover:bg-brand-subtle focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-pressed'
-
-// ─── 카테고리 한글 변환 ────────────────────────────────────────────────────────
-
-const CATEGORY_LABEL: Record<string, string> = {
-  rate: '금리',
-  exchange_rate: '환율',
-  semiconductor: '반도체',
-  energy: '에너지',
-  price: '물가',
-  employment: '고용',
-}
-
-function categoryLabel(key: string) {
-  return CATEGORY_LABEL[key] ?? key
-}
 
 const TONE_CLASS: Record<'brand' | 'warning' | 'muted', string> = {
   brand: 'text-brand-primary',
@@ -80,7 +67,7 @@ function NewsListItem({ news }: { news: NewsItem }) {
         className="group flex flex-col gap-1 py-5 hover:opacity-80 focus-visible:outline-2 focus-visible:outline-brand-primary"
       >
         <p className="font-sans text-[12px] text-text-muted">
-          {categoryLabel(news.category)} / [발행처] · {publishedDate}
+          {categoryLabel(news.category)} / <NewsPublisher newsId={news.id} /> · {publishedDate}
         </p>
         <h3 className="font-sans text-[17px] font-semibold text-text-primary leading-snug group-hover:text-brand-primary transition-colors">
           {news.title}
@@ -183,7 +170,7 @@ export default function HomePage() {
                 {featuredNews.briefing}
               </p>
               <p className="font-sans text-[13px] text-text-muted">
-                [발행처] · {new Date(featuredNews.publishedAt).toLocaleDateString('ko-KR')}
+                <NewsPublisher newsId={featuredNews.id} /> · {new Date(featuredNews.publishedAt).toLocaleDateString('ko-KR')}
               </p>
               <Link to={`/news/${featuredNews.id}`} className={primaryLinkClass}>
                 뉴스 읽고 예측하기
