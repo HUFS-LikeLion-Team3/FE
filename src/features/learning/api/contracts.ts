@@ -30,8 +30,10 @@ export const feedbackSummarySchema = z.object({
   flowSummary: z.string().nullable(), insufficientEvidence: z.boolean(), inputCutoffAt: timestamp,
 })
 export const feedbackListSchema = z.array(feedbackSummarySchema)
+const feedbackItemSchema = z.object({ id, type: z.string(), content: z.string(), referenceIds: z.array(id), sortOrder: z.number() })
 export const feedbackSchema = feedbackSummarySchema.extend({
-  targetFeedbacks: z.array(z.object({ sessionTargetId: id, items: z.array(z.object({ id, type: z.string(), content: z.string(), referenceIds: z.array(id), sortOrder: z.number() })) })),
+  sessionItems: z.array(feedbackItemSchema).optional(),
+  targetFeedbacks: z.array(z.object({ sessionTargetId: id, items: z.array(feedbackItemSchema) })),
   references: z.array(z.object({ id, sourceDocumentId: id, chunkId: id, title: z.string(), publisher: z.string(), publishedAt: timestamp, url: httpUrl, citationLabel: z.string(), citationExcerpt: z.string(), usageContext: z.string(), contentHash: z.string() })),
 })
 const outcomeStatus = z.enum(['pending', 'ready', 'unavailable'])
