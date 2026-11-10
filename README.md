@@ -74,6 +74,7 @@ pnpm dev
 
 ## 구현 문서
 
+- [Replay 결과·통합 회고](./src/features/replay/README.md): P1-03 데스크톱 UI, 개발 목과 미확정 API 연결 경계.
 - [학습 흐름](./src/features/learning/README.md): 저장·상태 전이·캐시·목 경계.
 - [뉴스 탐색](./src/features/explore/README.md): 필터·페이지 조회·계약 및 미검증 사항.
 - [공용 UI](./src/components/ui/README.md): 컴포넌트 사용·토큰·접근성.
