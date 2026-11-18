@@ -1,6 +1,9 @@
 import { lazy, Suspense } from 'react'
 import { createBrowserRouter, Navigate, Route, RouterProvider, Routes } from 'react-router-dom'
 
+const ReplayResultsPage = lazy(() => import('@/features/replay/ReplayResultsPage'))
+const ReplayPreviewPage = import.meta.env.DEV ? lazy(() => import('@/features/replay/ReplayPreviewPage')) : null
+
 const ResultsPage = lazy(() => import('@/features/learning/ResultsPage'))
 const FinalReflectionPage = lazy(() => import('@/features/learning/FinalReflectionPage'))
 const CompletedSessionPage = lazy(() => import('@/features/learning/CompletedSessionPage'))
@@ -34,6 +37,8 @@ function AppRoutes() {
       <Route path="/onboarding" element={<Suspense fallback={<p role="status">불러오는 중…</p>}><InterestSettingPage /></Suspense>} />
       <Route path="/terms" element={<Suspense fallback={<p role="status">불러오는 중…</p>}><PolicyPage kind="terms" /></Suspense>} />
       <Route path="/privacy" element={<Suspense fallback={<p role="status">불러오는 중…</p>}><PolicyPage kind="privacy" /></Suspense>} />
+      <Route path="/replay/:replayId/results" element={<ReplayResultsPage />} />
+      {ReplayPreviewPage && <Route path="/dev/replay/preview/results" element={<ReplayPreviewPage />} />}
       <Route path="/explore" element={<NewsExplorePage />} />
       <Route path="/news/:newsId" element={<AssignedProductPage page="news" />} />
       <Route path="/news/:newsId/predict" element={<AssignedProductPage page="prediction" />} />
