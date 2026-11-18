@@ -1,12 +1,14 @@
+import type { OutcomesDto, SeriesDto } from './api/contracts'
+
 export const horizons = [1, 5, 20] as const
 export type Horizon = typeof horizons[number]
 export type Direction = 'up' | 'down' | 'neutral'
-export type Target = { id: string; name: string; kind: 'index' | 'fx' | 'rate'; marketTargetId?: string; rationale?: string; directionLabels?: Record<Direction, string>; referenceMarket?: ReferenceMarket }
+export type Target = { id: string; name: string; kind: 'index' | 'fx' | 'rate'; marketTargetId?: string; targetType?: string; marketCategory?: string; rationale?: string; directionLabels?: Record<Direction, string>; referenceMarket?: ReferenceMarket }
 export type ReferenceMarket = { status: 'ready' | 'pending' | 'unavailable'; value: number | null; unit: string; asOf: string | null; changeValue: number | null; changePercent: number | null; sourceName: string | null; sourceUrl: string | null; unavailableReason: string | null }
 export type Prediction = { direction: Direction | null; reason: string }
 export type Draft = Record<string, Record<Horizon, Prediction>>
 export type Source = { id: string; title: string; publisher: string; date: string; quote: string; url: string }
-export type FeedbackItem = { title: string; body: string; sources: Source[] }
+export type FeedbackItem = { type?: string; title: string; body: string; sources: Source[] }
 export type FeedbackState = 'ready' | 'loading' | 'transient-error' | 'validation-error' | 'limited' | 'unavailable' | 'pending' | 'generating' | 'failed'
 
 export function directionLabel(target: Target, direction: Direction | null) {
@@ -35,9 +37,13 @@ export type NewsView = {
   term: { name: string; description: string; url: string; sourceLabel: string } | null
 }
 export type FeedbackView = {
-  targets: Target[]; draft: Draft; items: Record<string, FeedbackItem[]>
+  targets: Target[]; draft: Draft; items: Record<string, FeedbackItem[]>; sessionItems?: FeedbackItem[]
   inputCutoffAt?: string | null; flowSummary?: string | null; generatedAt?: string | null; reflectionSavedAt?: string | null
   observationRecords?: Record<string, { horizon: Horizon; status: 'pending' | 'ready' | 'unavailable'; text: string }[]>
+  outcomesState?: 'loading' | 'error'
+  notesState?: 'loading' | 'error'
+  outcomes?: OutcomesDto
+  marketSeries?: Record<string, SeriesDto>
   midNotes?: Record<string, string[]>
   reflection: string; observation: ObservationState; sessionId: string
 }
