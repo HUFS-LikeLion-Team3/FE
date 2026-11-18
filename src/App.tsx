@@ -41,7 +41,7 @@ function AppRoutes() {
       <Route path="/replay/:replayId/results" element={<ReplayResultsPage />} />
       {ReplayPreviewPage && <Route path="/dev/replay/preview/results" element={<ReplayPreviewPage />} />}
       <Route path="/explore" element={<NewsExplorePage />} />
-      <Route path="/replay" element={<ReplayPage />} />
+      <Route path="/replay/*" element={<ReplayPage />} />
       <Route path="/news/:newsId" element={<AssignedProductPage page="news" />} />
       <Route path="/news/:newsId/predict" element={<AssignedProductPage page="prediction" />} />
       <Route path="/learning/:sessionId/edit" element={<AssignedProductPage page="prediction" />} />

@@ -32,7 +32,7 @@ export function ReplayResultsView({ data, state = 'ready', save, retry, preview 
   const resolvedState = state !== 'ready' ? state : !data ? 'empty' : !data.resultsRevealedAt || Number.isNaN(Date.parse(data.resultsRevealedAt)) ? 'locked' : !validReplayData(data) ? 'error' : 'ready'
   if (resolvedState !== 'ready' || !data) {
     const copy = stateCopy[resolvedState === 'ready' ? 'empty' : resolvedState]
-    return <Shell><div role={resolvedState === 'error' ? 'alert' : 'status'}><PageTitle label="REPLAY / OBSERVATION & REFLECTION" title={copy[0]} description={copy[1]} /></div>
+    return <Shell section="/explore"><div role={resolvedState === 'error' ? 'alert' : 'status'}><PageTitle label="REPLAY / OBSERVATION & REFLECTION" title={copy[0]} description={copy[1]} /></div>
       {resolvedState === 'loading' ? <Button disabled loading>불러오는 중</Button> : resolvedState === 'error' && retry ? <Button onClick={retry}>결과 다시 불러오기</Button> : null}
       <Link to="/learning" className={linkClass}>학습 기록 보기</Link>
     </Shell>
@@ -46,7 +46,7 @@ export function ReplayResultsView({ data, state = 'ready', save, retry, preview 
   const series = data.series[target.id]
   const rate = target.kind === 'rate'
   const sourceUrl = row?.dataSourceUrl ?? baseline?.dataSourceUrl
-  return <Shell><PageTitle label="REPLAY / OBSERVATION & REFLECTION" title="지난 변화에서, 다음 관점을 발견하다" description={`${data.title} · 지난 뉴스 학습 · 결과를 공개했어요`} />
+  return <Shell section="/explore"><PageTitle label="REPLAY / OBSERVATION & REFLECTION" title="지난 변화에서, 다음 관점을 발견하다" description={`${data.title} · 지난 뉴스 학습 · 결과를 공개했어요`} />
     <div className="space-y-2 rounded-card bg-brand-subtle p-4"><p className="text-control font-medium">과거의 결과를 함께 살펴보세요</p><p className="text-meta text-text-muted">{preview ? '아래 수치는 시안용 예시입니다. 실제 학습에서는 당시 기준일과 출처가 확인된 결과를 보여드려요.' : '당시 기준일과 출처가 확인된 과거 결과예요. 현재 제출 시각으로 다시 계산하지 않아요.'}</p></div>
     <div className="[&_button]:min-w-[180px]"><TargetSwitcher targets={data.targets} active={target.id} onChange={setActive} /></div>
     <ReplayPeriodSummary data={data} target={target} active={horizon} onChange={setHorizon} />
