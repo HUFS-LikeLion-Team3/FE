@@ -6,6 +6,7 @@ Figma `02 · Design System / Components`의 Button(159:41), TextField(159:69), C
 - `TextField` / `TextArea`: 필수 `label`, 선택 `helperText`, `error`. native input/textarea props와 ref를 전달한다. 오류 안내는 aria-invalid/aria-describedby로 연결한다. readOnly는 포커스·복사가 가능하고 disabled는 조작·폼 제출에서 제외된다.
 - `Choice`: `type="radio|checkbox"`, `label`과 native input props를 받는다. 단일 선택은 같은 name과 fieldset/legend를 사용한다. 복수 선택은 checkbox를 사용한다.
 - `FilterChip`: `selected`와 onClick을 받는 토글 버튼. 선택 상태를 aria-pressed와 체크 표시로 전달한다. 단일/복수 필터 정책은 소비 화면이 관리한다.
+- `Tabs`: 아래 패널의 내용을 바꾸는 탭 목록. `tabs`(`{ key, label }[]`), `value`, `onChange`, `label`(tablist 이름), `idPrefix`를 받는다. role="tablist/tab"과 `aria-selected`를 사용하고 ←/→·Home·End로 이동하면 해당 탭이 선택된다. 선택한 탭의 내용은 같은 `idPrefix`와 `tabKey`를 받는 `TabPanel`로 감싸며, `role="tabpanel"`과 `aria-labelledby` 연결은 `TabPanel`이 처리한다. 토글 필터는 `FilterChip`, 화면 내용 전환은 `Tabs`를 쓴다. Figma Components 목록(위 4종)에는 없고 Replay 화면 기준으로 추가했다.
 
 컴포넌트는 API·저장·도메인 정책을 포함하지 않는다. 화면이 상태와 이벤트를 전달한다. className으로 폭을 조정하며 입력 그룹은 containerClassName으로 조정한다. hover/focus/pressed는 브라우저 상태를 사용하고 전용 state prop으로 흉내 내지 않는다.
 

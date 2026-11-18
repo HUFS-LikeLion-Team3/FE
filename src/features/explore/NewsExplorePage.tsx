@@ -37,6 +37,7 @@ export default function NewsExplorePage() {
   return <Shell section="/explore">
     {import.meta.env.DEV && isMockLearningEnabled() && <Notice title="개발용 목 데이터">개발용 예시이며 실제 서버의 뉴스·조회 결과가 아닙니다.</Notice>}
     <PageTitle label="NEWS JOURNAL" title="경제의 흐름을 읽는 시간" description="선별한 핵심 뉴스와 최근 경제 소식을 살펴보세요." />
+    {import.meta.env.DEV && <nav className="flex gap-2" aria-label="뉴스 시점"><Link to="/explore" aria-current="page" className={`${linkClass} min-w-40 rounded-pill border border-brand-primary bg-brand-subtle text-brand-primary`}>✓ 오늘의 뉴스</Link><Link to="/replay" className={`${linkClass} min-w-40 rounded-pill border border-border-default`}>지난 뉴스</Link></nav>}
     <section aria-labelledby="highlight-news-title" className="space-y-8"><h2 id="highlight-news-title" className="text-section">추천 핵심 뉴스</h2>
       {!highlights.data ? highlights.isPending ? <NewsSkeleton /> : <NewsError error={highlights.error!} busy={highlights.isFetching} retry={() => void highlights.refetch()} /> : <>
         {highlights.isError && <NewsError error={highlights.error} busy={highlights.isFetching} retry={() => void highlights.refetch()} />}

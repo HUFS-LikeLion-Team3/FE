@@ -52,7 +52,7 @@ export default function ReplayReflection({ data, save, prediction }: { data: Rep
       <p className="text-ui text-text-secondary">1·5·20거래일의 차이를 살펴보고, 다음에 확인할 관점을 남겨보세요.</p>
       <fieldset disabled={busy || !save} className="min-w-0 space-y-6"><legend className="sr-only">통합 회고 질문</legend>
         <div className="flex flex-wrap gap-2">{replayPrompts.map(p => <FilterChip key={p.key} selected={p.key === prompt} onClick={() => setPrompt(p.key)}>{p.label}{answers[p.key].trim() ? ' · 작성됨' : ''}</FilterChip>)}</div>
-        {replayPrompts.filter(p => all || p.key === prompt).map(p => <TextArea key={p.key} label={`${p.label} · 선택한 질문`} rows={5} className="min-h-32 border-border-default" value={answers[p.key]} onChange={event => { setAnswers(previous => ({ ...previous, [p.key]: event.target.value })); setError(null) }} placeholder="세 기간을 살펴보며 남기고 싶은 생각을 적어보세요." helperText="세 기간을 함께 돌아보며 한 질문 이상 답해주세요." />)}
+        {replayPrompts.filter(p => all || p.key === prompt).map(p => <TextArea key={p.key} label={`${p.label} · 선택한 질문`} rows={4} className="min-h-32 border-border-default" value={answers[p.key]} onChange={event => { setAnswers(previous => ({ ...previous, [p.key]: event.target.value })); setError(null) }} placeholder="세 기간을 살펴보며 남기고 싶은 생각을 적어보세요." helperText="세 기간을 함께 돌아보며 한 질문 이상 답해주세요." />)}
         <Button variant="text" className="w-full" onClick={() => setAll(!all)}>{all ? '선택한 질문만 보기' : '다른 질문 작성 보기'}</Button>
       </fieldset>
       <Notice title={save ? '하나의 통합 회고로 저장해요' : '통합 회고 저장은 준비 중이에요'}>{save ? '1일·5일 메모를 따로 작성하지 않아요. 한 질문 이상 답하면 Replay 학습 기록으로 저장할 수 있어요.' : '서버 저장 기능이 연결되면 이곳에서 회고를 남길 수 있어요.'}</Notice>
