@@ -1,6 +1,6 @@
 import { ApiError } from '@/lib/api-client'
 import { horizons, type Draft, type FeedbackItem, type FeedbackState, type FeedbackView, type NewsView, type Source, type Target } from '../model'
-import type { MarketDto, SessionDto } from './contracts'
+import type { FeedbackDto, MarketDto, SessionDto } from './contracts'
 import { learningApi as api } from './service'
 
 export function formatTime(value: string | null | undefined) {
@@ -12,7 +12,7 @@ export function blankDraft(targets: Target[]): Draft {
   return Object.fromEntries(targets.map(target => [target.id, Object.fromEntries(horizons.map(h => [h, { direction: null, reason: '' }]))])) as Draft
 }
 export function toTarget(market: MarketDto, sessionTargetId?: string): Target {
-  return { id: sessionTargetId ?? market.id, marketTargetId: market.id, name: market.displayName,
+  return { id: sessionTargetId ?? market.id, marketTargetId: market.id, name: market.displayName, targetType: market.targetType, marketCategory: market.marketCategory,
     kind: market.targetType === 'yield' || market.marketCategory === 'rate' ? 'rate' : market.marketCategory === 'fx' || market.targetType === 'currency_pair' || market.targetType === 'exchange_rate' ? 'fx' : 'index',
     directionLabels: market.directionLabels,
     referenceMarket: market.referenceMarket ? { ...market.referenceMarket, asOf: market.referenceMarket.asOfAt ? formatTime(market.referenceMarket.asOfAt) : null, sourceName: market.referenceMarket.dataSourceName, sourceUrl: market.referenceMarket.dataSourceUrl } : undefined,
@@ -74,7 +74,7 @@ export async function loadPage(page: 'news' | 'prediction' | 'initial' | 'final'
   }
   if (page === 'news' || page === 'prediction' || !session || session.status === 'drafting' || (page === 'final' && session.status !== 'completed')) return result
   const stage = page === 'final' ? 'final' : 'initial'
-  const [summaries, outcomes, notes] = await Promise.all([api.feedbacks(session.id, signal), api.outcomes(session.id, signal), stage === 'final' ? api.notes(session.id, signal) : Promise.resolve([])])
+  const summaries = await api.feedbacks(session.id, signal)
   const latest = summaries.find(f => f.feedbackStage === stage && f.isLatest)
   const feedback = latest ? await api.feedback(latest.id, signal) : null
   if (feedback && (feedback.learningSessionId !== session.id || feedback.feedbackStage !== stage)) throw new ApiError(502, 'contract')
@@ -82,32 +82,47 @@ export async function loadPage(page: 'news' | 'prediction' | 'initial' | 'final'
   result.poll = !feedback || feedback.status === 'pending' || feedback.status === 'generating'
   result.noFeedback = !feedback
   const sourceMap = new Map<string, Source>((feedback?.references ?? []).map(r => [r.id, { id: r.id, title: `${r.citationLabel} · ${r.title}`, publisher: r.publisher, date: formatTime(r.publishedAt), quote: r.citationExcerpt, url: r.url }]))
+  const mapItem = (item: FeedbackDto['targetFeedbacks'][number]['items'][number]): FeedbackItem => {
+    if (item.referenceIds.some(id => !sourceMap.has(id))) throw new ApiError(502, 'contract')
+    return { type: item.type, title: itemTitles[item.type] ?? '함께 살펴볼 내용', body: item.content, sources: item.referenceIds.map(id => sourceMap.get(id)!) }
+  }
+  const sessionItems = feedback?.status === 'ready' ? [...(feedback.sessionItems ?? [])].sort((a, b) => a.sortOrder - b.sortOrder).map(mapItem) : []
   const items: Record<string, FeedbackItem[]> = Object.fromEntries(saved.targets.map(t => [t.id, []]))
   if (feedback?.status === 'ready') {
     for (const target of feedback.targetFeedbacks) {
       if (!(target.sessionTargetId in items)) throw new ApiError(502, 'contract')
-      items[target.sessionTargetId] = [...target.items].sort((a, b) => a.sortOrder - b.sortOrder).map(item => {
-        if (item.referenceIds.some(id => !sourceMap.has(id))) throw new ApiError(502, 'contract')
-        return { title: itemTitles[item.type] ?? '함께 살펴볼 내용', body: item.content, sources: item.referenceIds.map(id => sourceMap.get(id)!) }
-      })
+      items[target.sessionTargetId] = [...target.items].sort((a, b) => a.sortOrder - b.sortOrder).map(mapItem)
     }
   }
-  const allObservations = outcomes.targets.flatMap(t => t.observations)
-  const observation = session.status === 'baseline_pending' ? 'baseline_pending' : session.status === 'reflection_pending' ? 'reflection_pending' : session.status === 'completed' ? 'completed' : allObservations.some(o => o.status === 'ready') ? 'observing' : 'scheduled'
-  const finalNotes = notes.filter(n => n.reflectionType === 'final' && n.sessionTargetId === null)
+  const observation = session.status === 'baseline_pending' ? 'baseline_pending' : session.status === 'reflection_pending' ? 'reflection_pending' : session.status === 'completed' ? 'completed' : session.status === 'observing' ? 'observing' : 'scheduled'
   result.feedback = {
-    targets: saved.targets, draft: saved.draft, items, sessionId: session.id, observation,
-    reflection: finalNotes.map(n => `${noteTitles[n.promptKey] ?? '회고'}\n${n.body}`).join('\n\n'),
-    reflectionSavedAt: finalNotes[0] ? formatTime(finalNotes[0].createdAt) : null,
+    targets: saved.targets, draft: saved.draft, items, sessionItems, sessionId: session.id, observation,
+    reflection: '', reflectionSavedAt: null,
     generatedAt: feedback?.generatedAt ? formatTime(feedback.generatedAt) : null,
     flowSummary: feedback?.flowSummary ?? null,
     inputCutoffAt: feedback?.inputCutoffAt ? formatTime(feedback.inputCutoffAt) : null,
-    observationRecords: Object.fromEntries(outcomes.targets.map(t => [t.sessionTargetId, t.observations.map(o => ({ horizon: o.horizon, status: o.status, text: o.status === 'ready' ? `${o.observedValue ?? '—'} ${o.unit} · ${formatTime(o.observedAt)}` : o.status === 'unavailable' ? `관측 불가 · ${o.unavailableReason ?? '관측 자료가 없어요.'}` : `관찰 예정${o.expectedObservationDate ? ` · ${o.expectedObservationDate}` : ''}` }))])),
-    midNotes: Object.fromEntries(saved.targets.map(t => [t.id, notes.filter(n => n.sessionTargetId === t.id && (n.reflectionType === 'day_1' || n.reflectionType === 'day_5')).map(n => `${n.reflectionType === 'day_1' ? '1' : '5'}거래일 메모 · ${n.body}`)])),
   }
   return result
 }
+export async function loadFeedbackOutcomes(sessionId: string, targets: Target[], signal?: AbortSignal) {
+  const outcomes = await api.outcomes(sessionId, signal)
+  if (outcomes.learningSessionId !== sessionId || new Set(outcomes.targets.map(t => t.sessionTargetId)).size !== outcomes.targets.length || outcomes.targets.some(t => !targets.some(selected => selected.id === t.sessionTargetId && selected.marketTargetId === t.marketTargetId))) throw new ApiError(502, 'contract')
+  const observationRecords: FeedbackView['observationRecords'] = Object.fromEntries(outcomes.targets.map(t => [t.sessionTargetId, t.observations.map(o => ({ horizon: o.horizon, status: o.status, text: o.status === 'ready' ? `${o.observedValue ?? '—'} ${o.unit} · ${formatTime(o.observedAt)}` : o.status === 'unavailable' ? `관측 불가 · ${o.unavailableReason ?? '관측 자료가 없어요.'}` : `관찰 예정${o.expectedObservationDate ? ` · ${o.expectedObservationDate}` : ''}` }))]))
+  return { outcomes, observationRecords }
+}
+export async function loadFeedbackNotes(sessionId: string, targets: Target[], signal?: AbortSignal) {
+  const notes = await api.notes(sessionId, signal)
+  if (notes.some(n => (n.learningSessionId && n.learningSessionId !== sessionId) || (n.sessionTargetId !== null && !targets.some(t => t.id === n.sessionTargetId)))) throw new ApiError(502, 'contract')
+  const finalNotes = notes.filter(n => n.reflectionType === 'final' && n.sessionTargetId === null)
+  return {
+    reflection: finalNotes.map(n => `${noteTitles[n.promptKey] ?? '회고'}\n${n.body}`).join('\n\n'),
+    reflectionSavedAt: finalNotes[0] ? formatTime(finalNotes[0].createdAt) : null,
+    midNotes: Object.fromEntries(targets.map(t => [t.id, notes.filter(n => n.sessionTargetId === t.id && (n.reflectionType === 'day_1' || n.reflectionType === 'day_5')).map(n => `${n.reflectionType === 'day_1' ? '1' : '5'}거래일 메모 · ${n.body}`)])),
+  }
+}
 const itemTitles: Record<string, string> = {
+  news_analysis: '뉴스 핵심 해설', initial_market_impact: 'AI의 방향 판단', initial_prediction_review: '내 예측 근거 평가',
+  final_market_explanation: '실제 변동의 배경', final_prediction_review: '예측 결과와 근거 평가', final_takeaway: '이번 사례에서 배운 점',
   flow_summary: '판단 흐름 요약', initial_uncertainty: '불확실한 점', initial_counter_scenario: '반대 시나리오', initial_factor_to_review: '함께 살펴볼 요소',
   final_observed_flow: '관찰된 흐름', final_co_observed_factors: '함께 확인된 요소', final_reflection_improvement: '회고 보완점', final_next_hypothesis: '다음 가설 점검', interpretation_limit: '해석 한계',
 }
