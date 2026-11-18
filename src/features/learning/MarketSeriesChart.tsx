@@ -1,9 +1,12 @@
 import { LineChart, Line, ResponsiveContainer, XAxis, YAxis, CartesianGrid, Tooltip, ReferenceDot, ReferenceLine } from 'recharts'
 import type { OutcomesDto, SeriesDto } from './api/contracts'
+import { Button } from '@/components/ui/Button'
+import { isConsistentMarketSeries } from './market-series-validation'
 import { Notice } from './components/PagePrimitives'
 
 type Outcome = OutcomesDto['targets'][number]
-export default function MarketSeriesChart({ data, outcome, valueLabel = '종가', replay = false }: { data: SeriesDto; outcome: Outcome; valueLabel?: string; replay?: boolean }) {
+export default function MarketSeriesChart({ data, outcome, valueLabel = '종가', replay = false, onRetry }: { data: SeriesDto; outcome: Outcome; valueLabel?: string; replay?: boolean; onRetry?: () => void }) {
+  if (!isConsistentMarketSeries(data, outcome)) return <Notice title="그래프와 확정 관측값이 일치하지 않아요" error>숫자나 단위가 다른 자료는 그래프로 표시하지 않아요. 확정 관측값과 피드백을 확인하고 자료를 다시 불러와 주세요.{onRetry && <Button variant="text" onClick={onRetry}>그래프 다시 불러오기</Button>}</Notice>
   const baseline = outcome.baseline
   const map = new Map(data.series.map(point => [point.tradingDate, point]))
   if (baseline.status === 'ready' && baseline.baselineValue !== null && baseline.baselineSessionDate) map.set(baseline.baselineSessionDate, { tradingDate: baseline.baselineSessionDate, closeValue: baseline.baselineValue, unit: baseline.unit, dataSourceName: baseline.dataSourceName ?? '', dataSourceUrl: baseline.dataSourceUrl })
@@ -18,6 +21,7 @@ export default function MarketSeriesChart({ data, outcome, valueLabel = '종가'
         <YAxis domain={['auto', 'auto']} tick={{ fontSize: 12 }} />
         <Tooltip formatter={value => [`${value} ${points[0].unit}`, valueLabel]} />
         <Line dataKey="closeValue" name={valueLabel} type="linear" stroke="var(--color-brand-primary)" strokeWidth={2} dot={replay ? false : { r: 3 }} isAnimationActive={false} />
+        {!replay && baseline.status === 'ready' && baseline.baselineValue !== null && <ReferenceLine y={baseline.baselineValue} stroke="var(--color-text-muted)" strokeDasharray="4 4" />}
         {replay && baseline.status === 'ready' && baseline.baselineValue !== null && baseline.baselineSessionDate && <><ReferenceLine x={baseline.baselineSessionDate} stroke="var(--color-border-control)" strokeDasharray="3 3" /><ReferenceDot x={baseline.baselineSessionDate} y={baseline.baselineValue} r={4} fill="var(--color-brand-primary)" /></>}
         {readyRows.filter(row => row.observationSessionDate && points.some(point => point.tradingDate === row.observationSessionDate)).map(row => <ReferenceDot key={row.horizon} x={row.observationSessionDate!} y={row.observedValue!} r={4} fill="var(--color-brand-primary)" label={replay ? undefined : `T${row.horizon}`} />)}
       </LineChart></ResponsiveContainer>

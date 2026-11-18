@@ -3,7 +3,7 @@ import { useSearchParams } from 'react-router-dom'
 import { z } from 'zod'
 import { Button } from '@/components/ui/Button'
 import { ReplayResultsView } from './ReplayResultsPage'
-import { replayFixture } from './fixtures'
+import { replayFixture } from './results-fixtures'
 import type { ReplayReceipt, ReplaySaveRequest, ReplayState } from './model'
 
 const key = 'finsight.dev.replay-receipt'
