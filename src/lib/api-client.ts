@@ -2,9 +2,22 @@ import type { z } from 'zod'
 
 // The login owner calls this after OAuth. Never put a token in VITE_* or a URL.
 const tokenKey = 'finsight.accessToken'
+const tokenListeners = new Set<() => void>()
+
+export function getAccessToken() {
+  return sessionStorage.getItem(tokenKey)
+}
+
+export function subscribeToAccessToken(listener: () => void) {
+  tokenListeners.add(listener)
+  return () => { tokenListeners.delete(listener) }
+}
+
 export function setAccessToken(token: string | null) {
+  if (token === getAccessToken()) return
   if (token) sessionStorage.setItem(tokenKey, token)
   else sessionStorage.removeItem(tokenKey)
+  tokenListeners.forEach(listener => listener())
 }
 export class ApiError extends Error {
   status: number
@@ -28,7 +41,7 @@ export async function request<T>(path: string, schema: z.ZodType<T>, options: { 
   options.signal?.addEventListener('abort', abort, { once: true })
   if (options.signal?.aborted) controller.abort()
   try {
-    const token = sessionStorage.getItem(tokenKey)
+    const token = getAccessToken()
     const base = (import.meta.env.VITE_API_BASE_URL ?? (import.meta.env.DEV ? '' : 'http://localhost:8080')).replace(/\/$/, '')
     const response = await fetch(`${base}/api/v1${path}`, {
       method: options.method ?? 'GET', signal: controller.signal,
@@ -36,7 +49,7 @@ export async function request<T>(path: string, schema: z.ZodType<T>, options: { 
       body: options.body !== undefined ? JSON.stringify(options.body) : undefined,
     })
     if (!response.ok) {
-      if (response.status === 401) setAccessToken(null)
+      if (response.status === 401 && token && token === getAccessToken()) setAccessToken(null)
       throw new ApiError(response.status)
     }
     let payload: unknown

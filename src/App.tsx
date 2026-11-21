@@ -1,4 +1,5 @@
 import { lazy, Suspense } from 'react'
+import { ProtectedRoutes, SignInRoute } from '@/features/auth/RouteAccess'
 import { createBrowserRouter, Navigate, Route, RouterProvider, Routes } from 'react-router-dom'
 
 const ReplayResultsPage = lazy(() => import('@/features/replay/ReplayResultsPage'))
@@ -28,29 +29,28 @@ const LearningHistoryPreviewPage = import.meta.env.DEV ? lazy(() => import('@/fe
 function AppRoutes() {
   return (
     <Routes>
-      <Route
-        path="/"
-        element={<HomePage />}
-      />
-      <Route path="/login" element={<Suspense fallback={<p role="status">불러오는 중…</p>}><LoginPage /></Suspense>} />
+      <Route path="/login" element={<SignInRoute><LoginPage /></SignInRoute>} />
       <Route path="/auth/kakao/callback" element={<Suspense fallback={<p role="status">불러오는 중…</p>}><KakaoCallbackPage /></Suspense>} />
-      <Route path="/settings/interests" element={<InterestSettingPage editing />} />
-      <Route path="/onboarding" element={<Suspense fallback={<p role="status">불러오는 중…</p>}><InterestSettingPage /></Suspense>} />
       <Route path="/terms" element={<Suspense fallback={<p role="status">불러오는 중…</p>}><PolicyPage kind="terms" /></Suspense>} />
       <Route path="/privacy" element={<Suspense fallback={<p role="status">불러오는 중…</p>}><PolicyPage kind="privacy" /></Suspense>} />
-      <Route path="/replay/:replayId/results" element={<ReplayResultsPage />} />
       {ReplayPreviewPage && <Route path="/dev/replay/preview/results" element={<ReplayPreviewPage />} />}
-      <Route path="/explore" element={<NewsExplorePage />} />
-      <Route path="/replay/*" element={<ReplayPage />} />
-      <Route path="/news/:newsId" element={<AssignedProductPage page="news" />} />
-      <Route path="/news/:newsId/predict" element={<AssignedProductPage page="prediction" />} />
-      <Route path="/learning/:sessionId/edit" element={<AssignedProductPage page="prediction" />} />
-      <Route path="/learning" element={<LearningHistoryPage />} />
-      <Route path="/learning/:sessionId" element={<CompletedSessionPage />} />
-      <Route path="/learning/:sessionId/reflection" element={<FinalReflectionPage />} />
-      <Route path="/learning/:sessionId/results" element={<ResultsPage />} />
-      <Route path="/learning/:sessionId/feedback" element={<AssignedProductPage page="initial" />} />
-      <Route path="/learning/:sessionId/final-feedback" element={<AssignedProductPage page="final" />} />
+      <Route element={<ProtectedRoutes />}>
+        <Route path="/" element={<HomePage />} />
+        <Route path="/settings/interests" element={<InterestSettingPage editing />} />
+        <Route path="/onboarding" element={<Suspense fallback={<p role="status">불러오는 중…</p>}><InterestSettingPage /></Suspense>} />
+        <Route path="/replay/:replayId/results" element={<ReplayResultsPage />} />
+        <Route path="/explore" element={<NewsExplorePage />} />
+        <Route path="/replay/*" element={<ReplayPage />} />
+        <Route path="/news/:newsId" element={<AssignedProductPage page="news" />} />
+        <Route path="/news/:newsId/predict" element={<AssignedProductPage page="prediction" />} />
+        <Route path="/learning/:sessionId/edit" element={<AssignedProductPage page="prediction" />} />
+        <Route path="/learning" element={<LearningHistoryPage />} />
+        <Route path="/learning/:sessionId" element={<CompletedSessionPage />} />
+        <Route path="/learning/:sessionId/reflection" element={<FinalReflectionPage />} />
+        <Route path="/learning/:sessionId/results" element={<ResultsPage />} />
+        <Route path="/learning/:sessionId/feedback" element={<AssignedProductPage page="initial" />} />
+        <Route path="/learning/:sessionId/final-feedback" element={<AssignedProductPage page="final" />} />
+      </Route>
       {AssignedPreviewApp && <Route path="/dev/pages/*" element={<Suspense fallback={<p role="status">불러오는 중…</p>}><AssignedPreviewApp /></Suspense>} />}
       {UiPreviewPage && <Route path="/dev/ui" element={<Suspense fallback={<p role="status">불러오는 중…</p>}><UiPreviewPage /></Suspense>} />}
       {InterestSettingPreviewPage && <Route path="/dev/onboarding" element={<Suspense fallback={<p role="status">불러오는 중…</p>}><InterestSettingPreviewPage /></Suspense>} />}
