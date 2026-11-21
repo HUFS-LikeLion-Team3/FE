@@ -1,4 +1,4 @@
-import { safeInternalPath } from '@/lib/navigation'
+import { safeLoginReturnPath } from '@/lib/navigation'
 import { useState } from 'react'
 import { Link, useBeforeUnload, useBlocker, useNavigate } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
@@ -38,7 +38,7 @@ function InterestForm({ initial, editing }: { initial: InterestItem[]; editing: 
       if (!editing) {
         const returnTo = sessionStorage.getItem('finsight.returnTo')
         sessionStorage.removeItem('finsight.returnTo')
-        navigate(safeInternalPath(returnTo), { replace: true })
+        navigate(safeLoginReturnPath(returnTo), { replace: true })
       }
     },
   })

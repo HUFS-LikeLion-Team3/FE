@@ -1,9 +1,9 @@
-import { safeInternalPath } from '@/lib/navigation'
+import { safeLoginReturnPath } from '@/lib/navigation'
 import { z } from 'zod'
-import { request, setAccessToken } from '@/lib/api-client'
+import { request } from '@/lib/api-client'
 
 const authResponseSchema = z.object({
-  accessToken: z.string(),
+  accessToken: z.string().min(1),
   user: z.object({
     id: z.string().uuid(),
     displayName: z.string(),
@@ -34,16 +34,14 @@ export function verifyState(returnedState: string | null): boolean {
 }
 
 /**
- * 카카오 인가코드를 서버에 전송하고 accessToken을 받아 저장합니다.
+ * 카카오 인가코드를 서버에 전송하고 로그인 응답을 받습니다.
  * 명세: POST /api/v1/auth/kakao { authorizationCode }
  */
 export async function loginWithKakao(code: string): Promise<AuthResponse> {
-  const data = await request('/auth/kakao', authResponseSchema, {
+  return request('/auth/kakao', authResponseSchema, {
     method: 'POST',
     body: { authorizationCode: code },
   })
-  setAccessToken(data.accessToken)
-  return data
 }
 
 /**
@@ -55,7 +53,7 @@ export function redirectToKakao() {
   const clientId = import.meta.env.VITE_KAKAO_CLIENT_ID
   const redirectUri = `${window.location.origin}/auth/kakao/callback`
   const returnTo = new URLSearchParams(window.location.search).get('returnTo')
-  if (returnTo) sessionStorage.setItem('finsight.returnTo', safeInternalPath(returnTo))
+  if (returnTo) sessionStorage.setItem('finsight.returnTo', safeLoginReturnPath(returnTo))
   else sessionStorage.removeItem('finsight.returnTo')
   const state = createState()
   sessionStorage.setItem(stateKey, state)

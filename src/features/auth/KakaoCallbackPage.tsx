@@ -1,4 +1,5 @@
-import { safeInternalPath } from '@/lib/navigation'
+import { safeLoginReturnPath } from '@/lib/navigation'
+import { setAccessToken } from '@/lib/api-client'
 import { useQueryClient } from '@tanstack/react-query'
 import { useEffect, useRef } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
@@ -41,8 +42,9 @@ export default function KakaoCallbackPage() {
       .then((data) => {
         // 신규 가입자는 온보딩, 기존 회원은 홈으로 이동
         client.clear()
+        setAccessToken(data.accessToken)
         const returnTo = sessionStorage.getItem('finsight.returnTo')
-        const next = data.user.onboardingCompleted ? safeInternalPath(returnTo) : '/onboarding'
+        const next = data.user.onboardingCompleted ? safeLoginReturnPath(returnTo) : '/onboarding'
         if (data.user.onboardingCompleted) sessionStorage.removeItem('finsight.returnTo')
         navigate(next, { replace: true })
       })
