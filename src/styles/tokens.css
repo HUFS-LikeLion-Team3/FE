@@ -1,0 +1,90 @@
+@theme {
+  --font-sans: 'Pretendard', system-ui, sans-serif;
+  --font-serif: 'MaruBuri', serif;
+  --font-mono: 'JetBrains Mono', monospace;
+  --color-brand-primary: #5b35f2;
+  --color-brand-hover: #4925d0;
+  --color-brand-pressed: #391da6;
+  --color-brand-subtle: #f0ebff;
+  --color-surface-canvas: #ffffff;
+  --color-surface-subtle: #f6f6f9;
+  --color-surface-raised: #ffffff;
+  --color-text-primary: #211d2e;
+  --color-text-secondary: #625d70;
+  --color-text-muted: #726c7c;
+  --color-border-default: #dfdce6;
+  --color-border-control: #8a8397;
+  --color-border-strong: #aaa3b7;
+  --color-market-up: #c6283e;
+  --color-market-down: #1766b5;
+  --color-market-neutral: #625d70;
+  --color-feedback-connected: #edf8cb;
+  --color-feedback-connected-text: #354516;
+  --color-feedback-review: #fff1bb;
+  --color-feedback-review-text: #624a09;
+  --color-status-error: #b42318;
+  --color-status-error-bg: #fff1f0;
+  --color-status-success: #216447;
+  --color-overlay-scrim: #211d2e66;
+  --radius-card: 12px;
+  --radius-control: 8px;
+  --radius-pill: 999px;
+  --text-control: 15px;
+  --text-control--line-height: 22px;
+  --text-meta: 14px;
+  --text-meta--line-height: 22px;
+  --text-ui: 16px;
+  --text-ui--line-height: 26px;
+  --text-label: 12px;
+  --text-label--line-height: 18px;
+  --container-content: 1200px;
+}
+
+@utility text-hero {
+  font-family: var(--font-serif);
+  font-size: 32px;
+  line-height: 44px;
+  font-weight: 700;
+  @media (width >= 64rem) { font-size: 48px; line-height: 62px; }
+}
+
+@utility text-page {
+  font-family: var(--font-serif);
+  font-size: 28px;
+  line-height: 40px;
+  font-weight: 700;
+  @media (width >= 64rem) { font-size: 36px; line-height: 50px; }
+}
+
+@utility text-section {
+  font-family: var(--font-serif);
+  font-size: 22px;
+  line-height: 32px;
+  font-weight: 600;
+  @media (width >= 64rem) { font-size: 24px; line-height: 34px; }
+}
+
+@utility text-news-title {
+  font-family: var(--font-serif);
+  font-size: 20px;
+  line-height: 30px;
+  font-weight: 600;
+  @media (width >= 64rem) { font-size: 22px; line-height: 32px; }
+}
+
+@utility text-news-body {
+  font-family: var(--font-serif);
+  font-size: 17px;
+  line-height: 30px;
+  font-weight: 400;
+  @media (width >= 64rem) { font-size: 18px; line-height: 32px; }
+}
+
+@utility text-number {
+  font-family: var(--font-mono);
+  font-size: 24px;
+  line-height: 34px;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  @media (width >= 64rem) { font-size: 28px; line-height: 38px; }
+}
