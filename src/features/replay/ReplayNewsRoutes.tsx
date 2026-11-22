@@ -3,7 +3,7 @@ import { useInfiniteQuery, useQuery } from '@tanstack/react-query'
 import { Link, Route, Routes, useLocation, useParams, useSearchParams } from 'react-router-dom'
 import { ApiError } from '@/lib/api-client'
 import { Notice, PageTitle, Shell, linkClass } from '../learning/components/PagePrimitives'
-import { getReplayNews, getReplayNewsPage, readReplayFilters, replayNewsKey, replayUsesFixtures, type ReplayNews } from './api'
+import { getReplayMarketTargets, getReplayNews, getReplayNewsPage, readReplayFilters, replayNewsKey, replayUsesFixtures, type ReplayNews } from './api'
 import ReplayLibrary from './ReplayLibrary'
 import ReplayNewsDetail from './ReplayNewsDetail'
 import { ReplayErrorNotice } from './ReplayErrorNotice'
@@ -20,9 +20,20 @@ function useClearPreviewState() {
 export function ReplayLibraryRoute({ preview }: { preview?: ReplayPreviewState }) {
   const [params] = useSearchParams()
   const clearPreview = useClearPreviewState()
-  const filters = readReplayFilters(params)
+  // 시장 대상 옵션: 실패하면 필터만 숨기고 목록은 target 없이 조회한다. 별도 오류 안내는 띄우지 않는다.
+  const targets = useQuery({
+    queryKey: ['replay', 'market-targets', replayUsesFixtures ? 'fixtures' : 'api'],
+    queryFn: ({ signal }) => getReplayMarketTargets(signal),
+    retry: false,
+    staleTime: 300_000,
+  })
+  const targetOptions = targets.data ?? []
+  const filters = readReplayFilters(params, targetOptions)
+  // URL에 target이 있으면 옵션 조회가 끝난 뒤 조회한다. 필터 없는 목록이 먼저 보였다가 바뀌는 것과 중복 요청을 막는다.
+  const waitingForTargets = params.has('target') && targets.isPending
   const query = useInfiniteQuery({
     queryKey: replayNewsKey(filters),
+    enabled: !waitingForTargets,
     initialPageParam: 0,
     queryFn: ({ pageParam, signal }) => getReplayNewsPage(filters, pageParam, signal),
     getNextPageParam: last => last.hasNext ? last.page + 1 : undefined,
@@ -44,7 +55,7 @@ export function ReplayLibraryRoute({ preview }: { preview?: ReplayPreviewState }
     loadingMore={query.isFetchingNextPage}
     moreError={!empty && query.isFetchNextPageError}
     onMore={() => void query.fetchNextPage()}
-    showMarketFilter={replayUsesFixtures}
+    targetOptions={targetOptions}
     fixtures={replayUsesFixtures}
   />
 }

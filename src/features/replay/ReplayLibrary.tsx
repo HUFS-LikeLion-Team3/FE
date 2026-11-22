@@ -2,7 +2,7 @@ import { Link, useSearchParams } from 'react-router-dom'
 import { Button } from '@/components/ui/Button'
 import { FilterChip } from '@/components/ui/FilterChip'
 import { Notice, PageTitle, Shell, linkClass } from '../learning/components/PagePrimitives'
-import { readReplayFilters, replayCategories, replayTargets, replayYears, type ReplayNewsItem } from './api'
+import { readReplayFilters, replayCategories, replayYears, type ReplayNewsItem, type ReplayTargetOption } from './api'
 import { ReplayErrorNotice } from './ReplayErrorNotice'
 import { ReplayScenarioCard } from './ReplayScenarioCard'
 
@@ -19,8 +19,8 @@ type Props = {
   loadingMore: boolean
   moreError: boolean
   onMore: () => void
-  /** 실제 시장 대상 ID 목록이 확정되기 전까지 실제 API 모드에서는 숨긴다. */
-  showMarketFilter: boolean
+  /** 시장 대상 옵션. 조회 중·실패·빈 목록이면 빈 배열이고, 이때 시장 대상 필터를 숨긴다. */
+  targetOptions: readonly ReplayTargetOption[]
   fixtures: boolean
 }
 
@@ -32,9 +32,9 @@ function LibrarySkeleton() {
   </div>
 }
 
-export default function ReplayLibrary({ state, error, retry, retrying, items, totalElements, hasNext, loadingMore, moreError, onMore, showMarketFilter, fixtures }: Props) {
+export default function ReplayLibrary({ state, error, retry, retrying, items, totalElements, hasNext, loadingMore, moreError, onMore, targetOptions, fixtures }: Props) {
   const [params, setParams] = useSearchParams()
-  const filters = readReplayFilters(params)
+  const filters = readReplayFilters(params, targetOptions)
   const category = replayCategories.find(item => item.key === filters.category)
   const filtered = !!(filters.category || filters.year || filters.targetId)
   const change = (key: 'category' | 'period' | 'target', value: string) => setParams(previous => {
@@ -54,7 +54,7 @@ export default function ReplayLibrary({ state, error, retry, retrying, items, to
       <div className="flex flex-wrap gap-2"><FilterChip className="min-w-25" selected={!category} onClick={() => change('category', 'all')}>전체</FilterChip>{replayCategories.map(item => <FilterChip key={item.key} className="min-w-25" selected={category?.key === item.key} onClick={() => change('category', item.key)}>{item.label}</FilterChip>)}</div>
       <div className="flex flex-wrap items-center gap-3">
         <label><span className="sr-only">기간</span><select aria-label="기간" className={`${selectClass} w-55`} value={filters.year ?? 'all'} onChange={event => change('period', event.target.value)}><option value="all">기간 · 전체</option>{replayYears.map(year => <option key={year} value={year}>{year}년</option>)}</select></label>
-        {showMarketFilter && <label><span className="sr-only">시장 대상</span><select aria-label="시장 대상" className={`${selectClass} w-65`} value={filters.targetId ?? 'all'} onChange={event => change('target', event.target.value)}><option value="all">시장 대상 · 전체</option>{replayTargets.map(item => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label>}
+        {targetOptions.length > 0 && <label><span className="sr-only">시장 대상</span><select aria-label="시장 대상" className={`${selectClass} w-65`} value={filters.targetId ?? 'all'} onChange={event => change('target', event.target.value)}><option value="all">시장 대상 · 전체</option>{targetOptions.map(item => <option key={item.id} value={item.id}>{item.label}</option>)}</select></label>}
         <Button variant="text" className="w-40" onClick={reset}>필터 초기화</Button>
         <p role="status" className="text-meta text-text-muted">{status}</p>
       </div>

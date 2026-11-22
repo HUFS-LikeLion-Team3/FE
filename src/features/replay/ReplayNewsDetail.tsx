@@ -3,7 +3,7 @@ import { Link, useLocation } from 'react-router-dom'
 import { Button } from '@/components/ui/Button'
 import { Modal } from '../learning/components/Modal'
 import { linkClass, Notice, PageTitle, Shell } from '../learning/components/PagePrimitives'
-import { formatPublishedMonth, replayCategoryLabel, type ReplayNews } from './api'
+import { formatReplayMonth, replayCategoryLabel, type ReplayNews } from './api'
 
 /** Replay 세션 생성이 연결되기 전의 시작 영역. 배포에서는 항상 이 영역을 보여준다. */
 export function ReplayStartUnavailable() {
@@ -21,7 +21,7 @@ export function ReplayStartUnavailable() {
 export default function ReplayNewsDetail({ news, fixtures, start }: { news: ReplayNews; fixtures: boolean; start?: ReactNode }) {
   const { search } = useLocation()
   const [sourceOpen, setSourceOpen] = useState(false)
-  return <Shell section="/explore"><PageTitle label="REPLAY / FACT BRIEFING" title={news.title} description={`${formatPublishedMonth(news.publishedAt)} · ${replayCategoryLabel(news.category)}${fixtures ? ' · 시안용 학습 자료' : ''}`} />
+  return <Shell section="/explore"><PageTitle label="REPLAY / FACT BRIEFING" title={news.title} description={`${formatReplayMonth(news.referenceAt)} · ${replayCategoryLabel(news.category)}${fixtures ? ' · 시안용 학습 자료' : ''}`} />
     <Link to={`/replay${search}`} className={linkClass}>← 지난 뉴스 목록으로</Link>
     <div className="grid grid-cols-8 items-start gap-12">
       <section className="col-span-5 min-w-0 space-y-6"><h2 className="text-section">발표 당시의 사실부터 읽어보세요</h2><p className="text-ui text-text-secondary">발표 당시 확인할 수 있었던 사실을 읽고, 이후의 시장 변화는 스스로 예측해 보세요.</p>

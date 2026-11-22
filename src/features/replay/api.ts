@@ -38,6 +38,7 @@ export async function getReplayScenarios(signal?: AbortSignal): Promise<ReplaySc
 // ─── 지난 뉴스 목록·상세 API ──────────────────────────────────────────────────
 // 목록: GET /api/v1/news?contentType=replay (+ category, from, to, marketTargetId)
 // 상세: GET /api/v1/news/{newsId}
+// 시장 대상 옵션: GET /api/v1/market-targets
 // 결과 공개 전 화면이다. 아래 스키마에 정의한 필드만 남고, 그 밖의 필드(결과·원문·시장 값 등)는 zod가 제거한다.
 // sources·target-candidates·facts·세션 API는 이 화면에서 호출하지 않는다.
 
@@ -48,7 +49,10 @@ export const replayPageSize = 6
 export const replayYears = ['2025', '2024', '2023'] as const
 export type ReplayYear = typeof replayYears[number]
 
-/** 화면 탭 key → 뉴스 API category. 탭 key는 URL(?category=)에 그대로 남긴다. */
+/**
+ * 화면 탭 key → 뉴스 API category. 탭 key는 URL(?category=)에 그대로 남긴다.
+ * 뉴스 category는 이 6개로 고정되지 않는다(BE 확인). 매핑 밖의 값은 "전체"에서만 보인다.
+ */
 export const replayNewsCategories = {
   rate_policy: 'rate', price: 'price', employment: 'employment',
   fx_export: 'exchange_rate', energy: 'energy', semiconductor: 'semiconductor',
@@ -61,64 +65,67 @@ export function replayCategoryLabel(category: string) {
 }
 
 const monthFormat = new Intl.DateTimeFormat('ko-KR', { timeZone: 'Asia/Seoul', year: 'numeric', month: 'long' })
-export function formatPublishedMonth(value: string) {
+/** 기준 시점(referenceAt, 없으면 publishedAt)을 서울 시간대의 연·월로 표시한다. */
+export function formatReplayMonth(value: string) {
   const date = new Date(value)
   return Number.isNaN(date.getTime()) ? '날짜 정보 없음' : monthFormat.format(date)
 }
 
+/** 시장 대상 필터 옵션. id는 URL(?target=)과 목록 요청의 marketTargetId에 그대로 쓴다. */
+export type ReplayTargetOption = { id: string; label: string }
+const fixtureTargetOptions: ReplayTargetOption[] = replayTargets.flatMap(target => target.marketTargetId ? [{ id: target.marketTargetId, label: target.name }] : [])
+// 화면에 쓰는 id·displayName만 남긴다. code·marketCategory·targetType·directionLabels·unit 등은 zod가 제거한다.
+const marketTargetsSchema = z.object({ targets: z.array(z.object({ id: z.string().uuid(), displayName: z.string().min(1) })) })
+
+export async function getReplayMarketTargets(signal?: AbortSignal): Promise<ReplayTargetOption[]> {
+  if (import.meta.env.DEV && !replayApiEnabled) return fixtureTargetOptions
+  const data = await request('/market-targets', marketTargetsSchema, { signal })
+  return [...new Map(data.targets.map(target => [target.id, { id: target.id, label: target.displayName }])).values()]
+}
+
 export type ReplayFilters = { category: ReplayCategoryKey | null; year: ReplayYear | null; targetId: string | null }
-/** URL의 category·period·target을 읽는다. 시장 대상은 실제 대상 ID 목록이 확정될 때까지 목 데이터 모드에서만 쓴다. */
-export function readReplayFilters(params: URLSearchParams): ReplayFilters {
+/** URL의 category·period·target을 읽는다. target은 현재 옵션 목록에 있는 id일 때만 쓰고, 없으면 무시한다. */
+export function readReplayFilters(params: URLSearchParams, targetOptions: readonly ReplayTargetOption[]): ReplayFilters {
   return {
     category: replayCategoryKeys.find(key => key === params.get('category')) ?? null,
     year: replayYears.find(year => year === params.get('period')) ?? null,
-    targetId: replayUsesFixtures ? replayTargets.find(target => target.id === params.get('target'))?.id ?? null : null,
+    targetId: targetOptions.find(option => option.id === params.get('target'))?.id ?? null,
   }
 }
 export type ReplayNewsQuery = { category?: string; from?: string; to?: string; marketTargetId?: string }
 export function toReplayNewsQuery(filters: ReplayFilters): ReplayNewsQuery {
   const query: ReplayNewsQuery = {}
   if (filters.category) query.category = replayNewsCategories[filters.category]
-  // TODO(BE 확인): from/to 형식(YYYY-MM-DD)과 시간대(KST) 확정 후 맞춘다.
+  // from/to: YYYY-MM-DD, Asia/Seoul 기준, 양 끝 포함. Replay(contentType=replay)는 referenceAt 기준이다 (BE 확인).
   if (filters.year) { query.from = `${filters.year}-01-01`; query.to = `${filters.year}-12-31` }
-  const marketTargetId = replayTargets.find(target => target.id === filters.targetId)?.marketTargetId
-  if (marketTargetId) query.marketTargetId = marketTargetId
+  if (filters.targetId) query.marketTargetId = filters.targetId
   return query
 }
 export const replayNewsKey = (filters: ReplayFilters) => ['replay', 'news', 'list', filters] as const
 
-export type ReplayNewsItem = { id: string; title: string; category: string; briefing: string | null; publishedAt: string }
+/** referenceAt은 표시 기준 시점이다. 응답에 없거나 형식이 틀리면 publishedAt으로 대체한 값이다. */
+export type ReplayNews = { id: string; title: string; category: string; briefing: string; referenceAt: string }
+export type ReplayNewsItem = ReplayNews
 export type ReplayNewsPage = { content: ReplayNewsItem[]; page: number; size: number; hasNext: boolean; totalElements: number | null }
-export type ReplayNews = { id: string; title: string; category: string; briefing: string; publishedAt: string }
 
-const timestamp = z.string().refine(value => !Number.isNaN(Date.parse(value)))
-const pageMeta = {
+const isTime = (value: unknown): value is string => typeof value === 'string' && !Number.isNaN(Date.parse(value))
+const timestamp = z.string().refine(isTime)
+// referenceAt은 형식이 틀려도 파싱을 실패시키지 않고 publishedAt으로 대체한다.
+const newsFields = {
+  id: z.string().min(1), title: z.string(), category: z.string(), briefing: z.string(),
+  contentType: z.literal('replay'), publishedAt: timestamp, referenceAt: z.unknown().optional(),
+}
+const toReplayNews = ({ id, title, category, briefing, publishedAt, referenceAt }: { id: string; title: string; category: string; briefing: string; publishedAt: string; referenceAt?: unknown }): ReplayNews =>
+  ({ id, title, category, briefing, referenceAt: isTime(referenceAt) ? referenceAt : publishedAt })
+
+// 기존 뉴스 목록 형태(content[] · id)로 확정됐다 (BE 확인). contentType으로 Replay 뉴스인지 확인한다.
+export const replayNewsPageSchema = z.object({
   page: z.number().int().nonnegative(), size: z.number().int().positive(), hasNext: z.boolean(),
   totalElements: z.number().int().nonnegative().optional(),
-}
-// TODO(BE 목록 응답 형태 확정 후): 아래 두 형태 중 쓰지 않는 쪽 스키마를 지운다.
-// 1) 기존 뉴스 목록 형태: content[] · id · contentType. contentType으로 Replay 뉴스인지 확인할 수 있다.
-const contentPageSchema = z.object({
-  ...pageMeta,
-  content: z.array(z.object({ id: z.string().min(1), title: z.string(), category: z.string(), briefing: z.string(), contentType: z.literal('replay'), publishedAt: timestamp })),
-}).transform(({ content, totalElements, ...meta }): ReplayNewsPage => ({
-  ...meta, totalElements: totalElements ?? null,
-  content: content.map(({ id, title, category, briefing, publishedAt }) => ({ id, title, category, briefing, publishedAt })),
-}))
-// 2) Replay 명세 예시 형태: items[] · newsId. contentType이 없어 서버 필터를 믿어야 한다.
-const itemsPageSchema = z.object({
-  ...pageMeta,
-  items: z.array(z.object({ newsId: z.string().min(1), title: z.string(), category: z.string(), briefing: z.string().optional(), publishedAt: timestamp })),
-}).transform(({ items, totalElements, ...meta }): ReplayNewsPage => ({
-  ...meta, totalElements: totalElements ?? null,
-  content: items.map(({ newsId, title, category, briefing, publishedAt }) => ({ id: newsId, title, category, briefing: briefing ?? null, publishedAt })),
-}))
-export const replayNewsPageSchema = z.union([contentPageSchema, itemsPageSchema])
+  content: z.array(z.object(newsFields)),
+}).transform(({ content, totalElements, ...meta }): ReplayNewsPage => ({ ...meta, totalElements: totalElements ?? null, content: content.map(toReplayNews) }))
 
-export const replayNewsSchema = z.object({
-  id: z.string().min(1), title: z.string(), category: z.string(), briefing: z.string(),
-  contentType: z.literal('replay'), publishedAt: timestamp,
-}).transform(({ id, title, category, briefing, publishedAt }): ReplayNews => ({ id, title, category, briefing, publishedAt }))
+export const replayNewsSchema = z.object(newsFields).transform(toReplayNews)
 
 const uuid = z.string().uuid()
 
