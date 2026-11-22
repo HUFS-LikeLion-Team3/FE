@@ -31,16 +31,24 @@ Replay 전용 API 계약이 연결되기 전의 UI다. 실제 BE·AI 생성·시
 
 ## 지난 뉴스 목록·상세 API 연결
 
-- 목록 `/replay`: `GET /api/v1/news?contentType=replay&page&size=6`. 분야는 `category`(`rate_policy→rate`, `fx_export→exchange_rate`, 나머지는 같은 이름), 기간(연도)은 `from=YYYY-01-01&to=YYYY-12-31`, 시장 대상은 `marketTargetId`로 보낸다. URL에는 `category`·`period`·`target`만 남기고 더 보기는 다음 페이지를 이어 붙인다.
-- 상세 `/replay/:newsId`: `GET /api/v1/news/{newsId}`의 `title`·`category`·`briefing`·`publishedAt`만 사용한다. 응답 `contentType`이 `replay`가 아니면 계약 오류로 처리한다.
+- 목록 `/replay`: `GET /api/v1/news?contentType=replay&page&size=6`. 응답은 `content[]`·`id` 형태이고 항목에 `briefing`이 포함된다. `contentType=replay`는 `replayStatus`가 `eligible`·`featured`인 뉴스만 반환한다. URL에는 `category`·`period`·`target`만 남기고 더 보기는 다음 페이지를 이어 붙인다.
+- 분야 `category`: 탭 key를 뉴스 category로 바꿔 보낸다(`rate_policy→rate`, `fx_export→exchange_rate`, 나머지는 같은 이름). 뉴스 category는 6개로 고정되지 않으며(`economy` 등) 매핑 밖의 값은 "전체"에서만 보이고 원래 값으로 표시된다. 시장 대상의 `marketCategory`와는 다른 필드다.
+- 기간(연도): `from=YYYY-01-01&to=YYYY-12-31`. 형식 `YYYY-MM-DD`, Asia/Seoul 기준, 양 끝 포함. Replay 뉴스는 `referenceAt` 기준으로 걸러진다(Live는 `publishedAt`).
+- 시장 대상: 옵션은 `GET /api/v1/market-targets`(`{ targets: [...] }`)의 `id`·`displayName`만 사용하고, 선택한 `id`를 `marketTargetId`로 보낸다. 조회 중·실패·빈 목록이면 시장 대상 필터만 숨기고 목록은 그대로 조회한다. URL의 `target`이 옵션에 없으면 무시하며, `target`이 있을 때는 옵션 조회가 끝난 뒤 목록을 조회한다.
+- 카드·상세의 기준 월은 `referenceAt`이다. 없거나 형식이 틀리면 `publishedAt`으로 대체한다.
+- 상세 `/replay/:newsId`: `GET /api/v1/news/{newsId}`의 `title`·`category`·`briefing`·`referenceAt`(대체 `publishedAt`)만 사용한다. 응답 `contentType`이 `replay`가 아니면 계약 오류로 처리한다.
 - 결과 공개 전 보호: 스키마에 정의한 필드만 남긴다. `sources`(원문 URL)·`target-candidates`(시장 값)·`facts`·세션 API를 호출하지 않으며 목록·상세 조회만으로 세션을 만들지 않는다. 기존 `/news/:newsId`로 이동하지 않는다(Live 세션이 생기면 Replay를 할 수 없다).
-- `VITE_REPLAY_API_ENABLED`(기본 false): 배포는 false면 "준비 중"만, true면 목록·상세만 연다. 개발은 false면 `news-fixtures.ts`, true면 실제 API를 쓴다. 대상 선택 이후 단계는 배포에서 열지 않는다.
+- `VITE_REPLAY_API_ENABLED`(기본 false): 배포는 false면 "준비 중"만, true면 목록·상세만 연다. 개발은 false면 `news-fixtures.ts`와 기존 가짜 시장 대상 목록, true면 실제 API를 쓴다. 대상 선택 이후 단계는 배포에서 열지 않는다.
 - 상태: 로딩 스켈레톤, 빈 목록(필터 유무 구분), 401 로그인 복귀, 400·계약 오류는 "검색이 아직 준비되지 않음", 404는 시장 대상 필터 해제(목록) 또는 목록 이동(상세), 추가 페이지 실패 시 표시된 목록 유지.
-- 목록 응답은 기존 뉴스 목록 형태(`content`·`id`)와 Replay 명세 예시 형태(`items`·`newsId`)를 모두 받는다. BE 확정 후 `api.ts`의 TODO 표시에 따라 한쪽을 지운다. 실제 API 모드에서는 시장 대상 ID 목록이 확정될 때까지 시장 대상 선택을 숨긴다.
+
+## 운영에서 켜기 전 확인
+
+- `briefing`은 DB 값을 그대로 반환하며 발표 이후 정보를 자동으로 제거하지 않는다(BE 확인). FE도 내용을 걸러내지 않는다.
+- 운영에서 `VITE_REPLAY_API_ENABLED=true`로 켜기 전에, Replay 뉴스(`eligible`·`featured`)의 브리핑에 발표 이후 수치·결과·사후 보도가 없는지 콘텐츠 검수가 필요하다.
 
 ## 지난 뉴스와 연결된 개발 미리보기
 
-- `/replay`: 위 목록 화면에 `news-fixtures.ts`(기존 18건의 가상 학습 자료를 뉴스 응답 모양으로 변환)를 연결한다. 분야·연도·시장 대상 필터와 페이지 처리를 서버와 같은 규칙으로 흉내 낸다.
+- `/replay`: 위 목록 화면에 `news-fixtures.ts`(기존 18건의 가상 학습 자료를 뉴스 응답 모양으로 변환)를 연결한다. 분야·연도(`referenceAt` 기준)·시장 대상 필터와 페이지 처리를 서버와 같은 규칙으로 흉내 낸다. `referenceAt`과 `publishedAt`은 하루 차이로 두었다.
 - `/replay/:newsId`: 위 상세 화면. 목 데이터의 id는 기존 시나리오 id와 같아서 대상 선택부터 데모로 이어진다. 실제 API 뉴스는 데모 시나리오가 없어 시작 버튼이 비활성이다.
 - `/replay/:newsId/targets` → `/predict`: 후보 1~3개, 대상별 세 기간 방향 및 전체 이유 1개 이상 검증, 임시 저장·제출 검토·확정·이탈 보호. 확정 후 수정 화면은 피드백으로 돌려보낸다.
 - `/replay/:newsId/feedback`: 선택한 대상과 판단 원문, 시안용 해설·근거 펼치기, 대기·오류·결과 공개 재시도. 자동 AI 생성이나 실제 평가 결과가 아니다.
