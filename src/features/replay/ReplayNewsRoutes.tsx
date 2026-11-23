@@ -5,6 +5,7 @@ import { ApiError } from '@/lib/api-client'
 import { Notice, PageTitle, Shell, linkClass } from '../learning/components/PagePrimitives'
 import { getReplayMarketTargets, getReplayNews, getReplayNewsPage, readReplayFilters, replayNewsKey, replayUsesFixtures, type ReplayNews } from './api'
 import ReplayLibrary from './ReplayLibrary'
+import { ReplayEditorRoute, ReplayFeedbackRoute } from './ReplaySessionRoutes'
 import ReplayNewsDetail from './ReplayNewsDetail'
 import { ReplayErrorNotice } from './ReplayErrorNotice'
 
@@ -80,11 +81,13 @@ function ReplayNotReady() {
   return <Shell section="/explore"><PageTitle label="REPLAY" title="Replay 예측은 준비 중이에요" description="지난 뉴스의 사실 브리핑은 목록에서 볼 수 있어요. 예측과 결과 공개는 준비가 끝나면 이용할 수 있어요." /><Link to="/replay" className={linkClass}>지난 뉴스 목록으로</Link></Shell>
 }
 
-/** 배포 빌드(VITE_REPLAY_API_ENABLED=true)용 경로. 대상 선택·예측·피드백은 세션 생성 API 연결 전까지 열지 않는다. */
 export default function ReplayApiRoutes() {
   return <Routes>
     <Route path="/" element={<ReplayLibraryRoute />} />
-    <Route path=":newsId" element={<ReplayDetailRoute />} />
+    <Route path=":newsId" element={<ReplayDetailRoute renderStart={news => <Link to={`/replay/${news.id}/predict`} className={`${linkClass} w-full bg-brand-primary text-white`}>예측 시작하기</Link>} />} />
+    <Route path=":newsId/predict" element={<ReplayEditorRoute />} />
+    <Route path="session/:sessionId/feedback" element={<ReplayFeedbackRoute />} />
+    <Route path="session/:sessionId/final-feedback" element={<ReplayFeedbackRoute final />} />
     <Route path="*" element={<ReplayNotReady />} />
   </Routes>
 }

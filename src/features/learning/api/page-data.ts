@@ -1,7 +1,8 @@
 import { ApiError } from '@/lib/api-client'
 import { horizons, type Draft, type FeedbackItem, type FeedbackState, type FeedbackView, type NewsView, type Source, type Target } from '../model'
-import type { FeedbackDto, MarketDto, SessionDto } from './contracts'
-import { learningApi as api } from './service'
+import { sessionDestination } from '../session-routes'
+import type { FeedbackDto, MarketDto, SessionDto, SessionTargetDto } from './contracts'
+import { learningApi as api, replayLearningApi } from './service'
 
 export function formatTime(value: string | null | undefined) {
   if (!value) return '아직 없음'
@@ -18,9 +19,10 @@ export function toTarget(market: MarketDto, sessionTargetId?: string): Target {
     referenceMarket: market.referenceMarket ? { ...market.referenceMarket, asOf: market.referenceMarket.asOfAt ? formatTime(market.referenceMarket.asOfAt) : null, sourceName: market.referenceMarket.dataSourceName, sourceUrl: market.referenceMarket.dataSourceUrl } : undefined,
   }
 }
-export async function loadNews(newsId: string, signal?: AbortSignal): Promise<NewsView> {
-  const [news, facts, sources, candidates] = await Promise.all([api.news(newsId, signal), api.facts(newsId, signal), api.sources(newsId, signal), api.candidates(newsId, signal)])
-  if (news.id !== newsId) throw new ApiError(502, 'contract')
+export async function loadNews(newsId: string, signal?: AbortSignal, newsData?: Awaited<ReturnType<typeof api.news>>): Promise<NewsView> {
+  const news = newsData ?? await api.news(newsId, signal)
+  if (news.id !== newsId || news.contentType === 'replay') throw new ApiError(502, 'contract')
+  const [facts, sources, candidates] = await Promise.all([api.facts(newsId, signal), api.sources(newsId, signal), api.candidates(newsId, signal)])
   const primary = sources.sources.find(s => s.isPrimary)
   return { id: news.id, title: news.title, category: news.category, publisher: primary?.publisher ?? '발행처 정보 없음', publishedAt: formatTime(news.publishedAt),
     originalUrl: primary?.url ?? null, originalLabel: '대표 출처 보기 ↗',
@@ -34,21 +36,39 @@ export async function loadSaved(session: SessionDto, signal?: AbortSignal) {
   const response = await api.targets(session.id, signal)
   if (response.learningSessionId !== session.id) throw new ApiError(502, 'contract')
   const selected = response.targets.filter(t => t.isSelected).sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0))
-  const targets = await Promise.all(selected.map(async target => toTarget(await api.market(target.marketTargetId, signal), target.sessionTargetId)))
-  const draft = blankDraft(targets)
-  await Promise.all(targets.map(async target => {
-    const saved = await api.predictions(session.id, target.id, signal)
-    if (saved.sessionTargetId !== target.id) throw new ApiError(502, 'contract')
-    for (const p of saved.predictions) draft[target.id][p.horizon] = { direction: p.direction, reason: p.reason ?? '' }
+  const targets = await Promise.all(selected.map(async target => {
+    const market = await api.market(target.marketTargetId, signal)
+    if (market.id !== target.marketTargetId) throw new ApiError(502, 'contract')
+    return toTarget(market, target.sessionTargetId)
   }))
-  return { targets, draft }
+  const draft = await loadPredictionDraft(session, selected, false, signal)
+  return { targets, draft, sessionTargets: response.targets }
+}
+
+export async function loadPredictionDraft(session: SessionDto, targets: SessionTargetDto[], byMarket: boolean, signal?: AbortSignal) {
+  const apiClient = session.sessionType === 'replay' ? replayLearningApi : api
+  const draft: Draft = {}
+  await Promise.all(targets.map(async target => {
+    const stored = await apiClient.predictions(session.id, target.sessionTargetId, signal)
+    if (stored.sessionTargetId !== target.sessionTargetId) throw new ApiError(502, 'contract')
+    const key = byMarket ? target.marketTargetId : target.sessionTargetId
+    const entry = blankDraft([{ id: key } as Target])[key]
+    for (const p of stored.predictions) entry[p.horizon] = { direction: p.direction, reason: p.reason ?? '' }
+    draft[key] = entry
+  }))
+  return draft
 }
 export type PageData = { news: NewsView; session: SessionDto | null; targets: Target[]; draft: Draft; feedback: FeedbackView | null; feedbackState: FeedbackState; poll: boolean; noFeedback?: boolean }
-export async function loadPage(page: 'news' | 'prediction' | 'initial' | 'final', newsId: string | undefined, sessionId: string | undefined, selectedIds: string[], signal?: AbortSignal, cachedPage?: PageData): Promise<PageData> {
+export async function loadPage(page: 'news' | 'prediction' | 'initial' | 'final', newsId: string | undefined, sessionId: string | undefined, selectedIds: string[], signal?: AbortSignal, cachedPage?: PageData): Promise<PageData | { redirectTo: string }> {
   let session = sessionId ? await api.session(sessionId, signal) : null
+  if (session?.sessionType === 'replay') return { redirectTo: sessionDestination(session) }
   const id = session?.newsId ?? newsId
   if (!id) throw new ApiError(400)
-  const news = cachedPage?.news.id === id ? cachedPage.news : await loadNews(id, signal)
+  const cachedNews = cachedPage?.news.id === id ? cachedPage.news : undefined
+  const remoteNews = cachedNews ? undefined : await api.news(id, signal)
+  if (remoteNews?.id && remoteNews.id !== id) throw new ApiError(502, 'contract')
+  if (remoteNews?.contentType === 'replay') return { redirectTo: `/replay/${id}${page === 'prediction' ? '/predict' : ''}` }
+  const news = cachedNews ?? await loadNews(id, signal, remoteNews)
   if (!session) {
     const summary = (await api.sessions(id, signal)).content[0]
     if (summary) session = await api.session(summary.id, signal)
@@ -62,22 +82,22 @@ export async function loadPage(page: 'news' | 'prediction' | 'initial' | 'final'
   }
   const result: PageData = { news: session && page !== 'prediction' ? { ...news, targets: saved.targets } : news, session, ...saved, feedback: null, feedbackState: 'ready', poll: false }
   if (page === 'prediction' && session?.status === 'drafting') {
-    const all = await api.targets(session.id, signal)
-    const bank: Draft = {}
-    await Promise.all(all.targets.map(async target => {
-      const stored = await api.predictions(session!.id, target.sessionTargetId, signal)
-      bank[target.marketTargetId] = blankDraft([{ id: target.marketTargetId } as Target])[target.marketTargetId]
-      for (const p of stored.predictions) bank[target.marketTargetId][p.horizon] = { direction: p.direction, reason: p.reason ?? '' }
-    }))
+    const all = ('sessionTargets' in saved && saved.sessionTargets) || (await api.targets(session.id, signal)).targets
+    const bank = await loadPredictionDraft(session, all, true, signal)
     result.targets = saved.targets.map(t => ({ ...t, id: t.marketTargetId ?? t.id }))
     result.draft = bank
   }
   if (page === 'news' || page === 'prediction' || !session || session.status === 'drafting' || (page === 'final' && session.status !== 'completed')) return result
-  const stage = page === 'final' ? 'final' : 'initial'
-  const summaries = await api.feedbacks(session.id, signal)
+  return loadSessionFeedback(result, session, page === 'final' ? 'final' : 'initial', signal)
+}
+
+export async function loadSessionFeedback<T extends Pick<PageData, 'targets' | 'draft' | 'feedback' | 'feedbackState' | 'poll' | 'noFeedback'>>(result: T, session: SessionDto, stage: 'initial' | 'final', signal?: AbortSignal) {
+  const apiClient = session.sessionType === 'replay' ? replayLearningApi : api
+  const saved = result
+  const summaries = await apiClient.feedbacks(session.id, signal)
   const latest = summaries.find(f => f.feedbackStage === stage && f.isLatest)
-  const feedback = latest ? await api.feedback(latest.id, signal) : null
-  if (feedback && (feedback.learningSessionId !== session.id || feedback.feedbackStage !== stage)) throw new ApiError(502, 'contract')
+  const feedback = latest ? await apiClient.feedback(latest.id, signal) : null
+  if (feedback && (feedback.id !== latest?.id || !feedback.isLatest || feedback.learningSessionId !== session.id || feedback.feedbackStage !== stage)) throw new ApiError(502, 'contract')
   result.feedbackState = feedback ? feedback.status === 'ready' ? feedback.insufficientEvidence ? 'limited' : 'ready' : feedback.status : 'pending'
   result.poll = !feedback || feedback.status === 'pending' || feedback.status === 'generating'
   result.noFeedback = !feedback
@@ -110,8 +130,8 @@ export async function loadFeedbackOutcomes(sessionId: string, targets: Target[],
   const observationRecords: FeedbackView['observationRecords'] = Object.fromEntries(outcomes.targets.map(t => [t.sessionTargetId, t.observations.map(o => ({ horizon: o.horizon, status: o.status, text: o.status === 'ready' ? `${o.observedValue ?? '—'} ${o.unit} · ${formatTime(o.observedAt)}` : o.status === 'unavailable' ? `관측 불가 · ${o.unavailableReason ?? '관측 자료가 없어요.'}` : `관찰 예정${o.expectedObservationDate ? ` · ${o.expectedObservationDate}` : ''}` }))]))
   return { outcomes, observationRecords }
 }
-export async function loadFeedbackNotes(sessionId: string, targets: Target[], signal?: AbortSignal) {
-  const notes = await api.notes(sessionId, signal)
+export async function loadFeedbackNotes(sessionId: string, targets: Target[], signal?: AbortSignal, replay = false) {
+  const notes = await (replay ? replayLearningApi : api).notes(sessionId, signal)
   if (notes.some(n => (n.learningSessionId && n.learningSessionId !== sessionId) || (n.sessionTargetId !== null && !targets.some(t => t.id === n.sessionTargetId)))) throw new ApiError(502, 'contract')
   const finalNotes = notes.filter(n => n.reflectionType === 'final' && n.sessionTargetId === null)
   return {

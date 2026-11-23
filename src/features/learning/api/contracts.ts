@@ -7,10 +7,11 @@ export const sessionSchema = z.object({
   id, newsId: id, sessionType: z.enum(['live', 'replay']),
   status: z.enum(['drafting', 'baseline_pending', 'observing', 'reflection_pending', 'completed']),
   savedAt: timestamp.nullable().optional(), submittedAt: timestamp.nullable().optional(),
-  completedAt: timestamp.nullable().optional(), createdAt: timestamp, updatedAt: timestamp.optional(),
+  completedAt: timestamp.nullable().optional(), resultsRevealedAt: timestamp.nullable().optional(), createdAt: timestamp, updatedAt: timestamp.optional(),
 })
+export const revealSchema = z.object({ sessionId: id, resultsRevealedAt: timestamp.refine(value => Number.isFinite(Date.parse(value))) })
 export const sessionsSchema = z.object({ content: z.array(sessionSchema) })
-export const newsSchema = z.object({ id, title: z.string(), category: z.string(), briefing: z.string(), publishedAt: timestamp })
+export const newsSchema = z.object({ id, title: z.string(), category: z.string(), briefing: z.string(), publishedAt: timestamp, contentType: z.string().optional() })
 export const factsSchema = z.object({ facts: z.array(z.object({ id, label: z.string(), valueText: z.string(), unit: z.string().nullable(), asOfAt: timestamp.nullable(), sortOrder: z.number() })) })
 export const sourcesSchema = z.object({ sources: z.array(z.object({ id, title: z.string(), publisher: z.string(), url: httpUrl, publishedAt: timestamp, isPrimary: z.boolean() })) })
 export const marketSchema = z.object({
