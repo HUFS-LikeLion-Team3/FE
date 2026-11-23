@@ -1,10 +1,11 @@
+import { PageLoading } from '@/features/learning/components/PageLoading'
 import { lazy, Suspense } from 'react'
 import { Notice, PageTitle, Shell } from '../learning/components/PagePrimitives'
 
 const ReplayWorkspace = import.meta.env.DEV ? lazy(() => import('./ReplayWorkspace')) : null
 // 배포 빌드는 VITE_REPLAY_API_ENABLED=true일 때만 목록·상세 API 화면을 연다. 예측 이후 단계는 세션 생성 API 연결 전까지 열지 않는다.
 const ReplayApiRoutes = !import.meta.env.DEV && import.meta.env.VITE_REPLAY_API_ENABLED === 'true' ? lazy(() => import('./ReplayNewsRoutes')) : null
-const fallback = <p role="status">지난 뉴스를 불러오는 중…</p>
+const fallback = <PageLoading />
 
 export default function ReplayPage() {
   if (ReplayWorkspace) return <Suspense fallback={fallback}><ReplayWorkspace /></Suspense>

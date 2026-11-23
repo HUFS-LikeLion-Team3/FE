@@ -1,3 +1,4 @@
+import { AuthLoading } from '@/features/learning/components/PageLoading'
 import { safeLoginReturnPath } from '@/lib/navigation'
 import { setAccessToken } from '@/lib/api-client'
 import { useQueryClient } from '@tanstack/react-query'
@@ -51,11 +52,5 @@ export default function KakaoCallbackPage() {
       .catch(() => navigate('/login?error=auth_failed', { replace: true }))
   }, [params, navigate, client])
 
-  return (
-    <main className="flex min-h-screen items-center justify-center">
-      <p role="status" className="text-control text-text-secondary">
-        로그인 중…
-      </p>
-    </main>
-  )
+  return <AuthLoading label="카카오 로그인 중…" />
 }

@@ -1,8 +1,9 @@
+import { PageLoading } from '@/features/learning/components/PageLoading'
 import type { ReactNode } from 'react'
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query'
 import { Link, Route, Routes, useLocation, useParams, useSearchParams } from 'react-router-dom'
 import { ApiError } from '@/lib/api-client'
-import { Notice, PageTitle, Shell, linkClass } from '../learning/components/PagePrimitives'
+import { PageTitle, Shell, linkClass } from '../learning/components/PagePrimitives'
 import { getReplayMarketTargets, getReplayNews, getReplayNewsPage, readReplayFilters, replayNewsKey, replayUsesFixtures, type ReplayNews } from './api'
 import ReplayLibrary from './ReplayLibrary'
 import ReplayNewsDetail from './ReplayNewsDetail'
@@ -68,7 +69,7 @@ export function ReplayDetailRoute({ preview, renderStart }: { preview?: ReplayPr
   const query = useQuery({ queryKey: ['replay', 'news', 'detail', newsId], queryFn: ({ signal }) => getReplayNews(newsId, signal), retry: false, staleTime: 60_000 })
   const back = <Link to={`/replay${search}`} className={linkClass}>지난 뉴스 목록으로</Link>
   const previewError = preview === 'error' ? new ApiError(500) : preview === 'empty' ? new ApiError(404) : null
-  if (preview === 'loading' || (!previewError && query.isPending)) return <Shell section="/explore"><Notice title="당시 뉴스를 불러오고 있어요">잠시 기다려 주세요.</Notice>{back}</Shell>
+  if (preview === 'loading' || (!previewError && query.isPending)) return <PageLoading />
   const error = previewError ?? (query.data ? null : query.error)
   if (error || !query.data) return <Shell section="/explore">
     <ReplayErrorNotice error={error ?? new ApiError(404)} titles={{ unsupported: '이 뉴스는 지난 뉴스로 학습할 수 없어요', notFound: '이 지난 뉴스를 찾을 수 없어요', other: '당시 뉴스를 불러오지 못했어요' }} retry={() => { if (preview) clearPreview(); void query.refetch() }} busy={query.isFetching}>{back}</ReplayErrorNotice>
