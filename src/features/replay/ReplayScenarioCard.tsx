@@ -1,13 +1,12 @@
 import { Link } from 'react-router-dom'
 import { linkClass } from '../learning/components/PagePrimitives'
-import { formatReferenceMonth, type ReplayScenario } from './api'
+import { formatReplayMonth, replayCategoryLabel, type ReplayNewsItem } from './api'
 
-export function ReplayScenarioCard({ scenario, categoryLabel, search }: { scenario: ReplayScenario; categoryLabel: string; search: string }) {
+export function ReplayScenarioCard({ news, search }: { news: ReplayNewsItem; search: string }) {
   return <article className="min-w-0 space-y-4 rounded-card bg-surface-subtle p-6">
-    <p className="text-meta text-text-muted">{categoryLabel} · {formatReferenceMonth(scenario.referenceMonth)}</p>
-    <h2 className="text-section">{scenario.title}</h2>
-    <p className="text-control font-medium">{scenario.keywords}</p>
-    <p className="text-ui text-text-secondary">{scenario.summary}</p>
-    <Link to={`/replay/${scenario.id}${search}`} className={`${linkClass} w-full border border-border-default bg-surface-canvas`}>당시 뉴스 살펴보기<span className="sr-only"> · {scenario.title}</span></Link>
+    <p className="text-meta text-text-muted">{replayCategoryLabel(news.category)} · {formatReplayMonth(news.referenceAt)}</p>
+    <h2 className="text-section">{news.title}</h2>
+    {news.briefing && <p className="line-clamp-3 whitespace-pre-line text-ui text-text-secondary">{news.briefing}</p>}
+    <Link to={`/replay/${encodeURIComponent(news.id)}${search}`} className={`${linkClass} w-full border border-border-default bg-surface-canvas`}>당시 뉴스 살펴보기<span className="sr-only"> · {news.title}</span></Link>
   </article>
 }
