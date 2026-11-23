@@ -1,3 +1,4 @@
+import { LoadingRows, LoadingSkeleton, SkeletonBlock } from '@/components/ui/LoadingSkeleton'
 import { useQuery } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
 import { ApiError } from '@/lib/api-client'
@@ -131,9 +132,13 @@ export default function HomePage() {
         {/* 좌측: 대표 뉴스 (로딩 / 오류 / 빈 목록 / 정상 구분) */}
         <section aria-label="오늘의 대표 뉴스" className="space-y-5">
           {newsLoading ? (
-            <p role="status" className="font-sans text-[14px] text-text-muted">
-              뉴스를 불러오는 중…
-            </p>
+            <LoadingSkeleton label="오늘의 대표 뉴스를 불러오는 중" className="space-y-4">
+              <SkeletonBlock className="h-4 w-36" />
+              <SkeletonBlock className="h-10 w-4/5" />
+              <SkeletonBlock className="h-4 w-full" />
+              <SkeletonBlock className="h-4 w-3/4" />
+              <SkeletonBlock className="h-12 w-40" />
+            </LoadingSkeleton>
           ) : newsIsError ? (
             // 오류: 401이면 로그인 안내, 그 외엔 재시도 안내
             <div role="alert" className="space-y-3 rounded-card bg-status-error-bg px-5 py-4">
@@ -185,7 +190,7 @@ export default function HomePage() {
         </section>
 
         {/* 우측: 이어서 학습하기 */}
-        {sessionsQuery.isPending && <p role="status" className="text-meta text-text-muted">이어서 학습할 기록을 불러오는 중…</p>}
+        {sessionsQuery.isPending && <LoadingRows label="이어서 학습할 기록을 불러오는 중" count={1} />}
         {sessionsQuery.isError && <aside role="alert" className="space-y-3 rounded-card bg-status-error-bg p-5"><p className="text-meta text-status-error">{sessionsQuery.error.message}</p>{sessionsQuery.error instanceof ApiError && sessionsQuery.error.status === 401 ? <Link to="/login" className={secondaryLinkClass}>로그인하러 가기</Link> : <button className={secondaryLinkClass} onClick={() => void sessionsQuery.refetch()}>학습 기록 다시 불러오기</button>}</aside>}
         {inProgressSession && (
           <aside aria-label="이어서 학습하기" className="space-y-3">

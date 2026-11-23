@@ -1,3 +1,4 @@
+import { PageLoading } from '@/features/learning/components/PageLoading'
 import { useQuery } from '@tanstack/react-query'
 import { Link, Route, Routes, useLocation, useParams, useSearchParams } from 'react-router-dom'
 import { Button } from '@/components/ui/Button'
@@ -25,7 +26,8 @@ function ReplayRoute({ step }: { step: 'targets' | 'predict' | 'feedback' }) {
   const loading = params.get('state') === 'loading' || query.isPending
   const failed = params.get('state') === 'error' || query.isError
   const scenario = params.get('state') === 'empty' ? undefined : query.data?.find(item => item.id === newsId)
-  if (!scenario || loading || failed) return <Shell section="/explore"><Notice title={loading ? '당시 뉴스를 불러오고 있어요' : '이 지난 뉴스를 확인할 수 없어요'} error={failed}>{loading ? '잠시 기다려 주세요.' : '지난 뉴스 목록에서 다른 자료를 선택해 주세요.'}</Notice>{failed && <Button onClick={() => { setParams(previous => { const next = new URLSearchParams(previous); next.delete('state'); return next }); void query.refetch() }}>다시 불러오기</Button>}<Link to="/replay" className={linkClass}>지난 뉴스 목록으로</Link></Shell>
+  if (loading) return <PageLoading />
+  if (!scenario || failed) return <Shell section="/explore"><Notice title="이 지난 뉴스를 확인할 수 없어요" error={failed}>지난 뉴스 목록에서 다른 자료를 선택해 주세요.</Notice>{failed && <Button onClick={() => { setParams(previous => { const next = new URLSearchParams(previous); next.delete('state'); return next }); void query.refetch() }}>다시 불러오기</Button>}<Link to="/replay" className={linkClass}>지난 뉴스 목록으로</Link></Shell>
   return step === 'predict' ? <ReplayPrediction key={scenario.id} scenario={scenario} />
     : step === 'feedback' ? <ReplayInitialFeedback key={scenario.id} scenario={scenario} />
     : <ReplayTargetSelection key={scenario.id} scenario={scenario} />
