@@ -1,7 +1,7 @@
 import type { Draft, Target } from '../learning/model'
 import type { OutcomesDto, SeriesDto } from '../learning/api/contracts'
 
-// FE view contract only. Replay HTTP paths and payloads are not agreed yet.
+// Replay uses the shared final reflection request with these three prompts.
 export const replayPrompts = [
   { key: 'learned', label: '배운 점' },
   { key: 'missed_variable', label: '놓친 변수' },
@@ -22,6 +22,7 @@ export type ReplayData = {
   series: Record<string, SeriesDto | undefined>
   receipt: ReplayReceipt | null
   feedbackHref: string | null
+  finalFeedbackHref?: string
 }
 export type ReplayState = 'ready' | 'loading' | 'error' | 'locked' | 'unsupported' | 'empty'
 export type ReplaySave = (request: ReplaySaveRequest) => Promise<ReplayReceipt>

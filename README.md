@@ -36,7 +36,7 @@ pnpm dev
 | `API_PROXY_TARGET` | 개발 서버의 `/api/v1` 프록시 대상. 브라우저에 노출되지 않음 | `http://localhost:8082` |
 | `VITE_MOCK_LEARNING_API` | 명시적인 개발용 목 모드. 기본 false, 배포 빌드 제외 | `false` |
 | `VITE_KAKAO_CLIENT_ID` | 카카오 로그인에 사용하는 공개 앱 키 | `.env.example` 참고 |
-| `VITE_REPLAY_API_ENABLED` | P1 지난 뉴스 목록·상세 API 연결. false면 배포는 "준비 중", 개발은 시안용 목 데이터. 세션 생성은 연결하지 않음 | `false` |
+| `VITE_REPLAY_API_ENABLED` | P1 지난 뉴스 및 Replay 학습 API. false면 배포는 "준비 중", 개발은 시안용 목 데이터 | `false` |
 
 .env.example을 복사해 로컬 `.env`에서 설정합니다. `.env`와 토큰·시크릿은 커밋하지 않습니다. `VITE_*` 값은 브라우저에 노출되므로 비밀값을 넣지 않습니다. 배포 시 `VITE_API_BASE_URL`을 실제 공개 API origin으로 설정합니다.
 

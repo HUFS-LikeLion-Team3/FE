@@ -1,11 +1,12 @@
 import { ApiError } from '@/lib/api-client'
 import { learningApi as api } from './service'
+import { sessionDestination } from '../session-routes'
 import { loadNews, loadSaved } from './page-data'
 
 export async function loadWorkbook(id: string, signal?: AbortSignal) {
   const session = await api.session(id, signal)
   if (session.id !== id) throw new ApiError(502, 'contract')
-  if (session.status === 'drafting') return { session, redirectTo: `/learning/${id}/edit` } as const
+  if (session.sessionType === 'replay' || session.status === 'drafting') return { session, redirectTo: sessionDestination(session) } as const
   const [news, saved, outcomes, notes, feedbacks] = await Promise.all([
     loadNews(session.newsId, signal), loadSaved(session, signal), api.outcomes(id, signal), api.notes(id, signal), api.feedbacks(id, signal),
   ])

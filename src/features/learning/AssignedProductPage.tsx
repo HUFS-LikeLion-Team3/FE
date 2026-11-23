@@ -25,10 +25,10 @@ export default function AssignedProductPage({ page }: { page: Page }) {
     refetchOnReconnect: false,
     // Re-entering an editor must load the saved draft before initializing local inputs.
     gcTime: page === 'prediction' ? 0 : undefined,
-    refetchInterval: query => !query.state.error && query.state.data?.poll ? 2000 : false,
+    refetchInterval: query => !query.state.error && query.state.data && !('redirectTo' in query.state.data) && query.state.data.poll ? 2000 : false,
     refetchIntervalInBackground: false,
   })
-  const context = query.data?.feedback
+  const context = query.data && !('redirectTo' in query.data) ? query.data.feedback : null
   const contextEnabled = (page === 'initial' || page === 'final') && !!context
   const outcomes = useQuery({
     queryKey: ['feedback-outcomes', context?.sessionId, context?.targets.map(t => [t.id, t.marketTargetId])],
@@ -49,6 +49,7 @@ export default function AssignedProductPage({ page }: { page: Page }) {
   } : null
   const refreshFeedback = () => { void query.refetch(); void outcomes.refetch(); if (page === 'final') void notes.refetch() }
   if (!query.data) return <QueryState loading={query.isPending} error={query.error} retry={() => void query.refetch()} />
+  if ('redirectTo' in query.data) return <Navigate to={query.data.redirectTo} replace />
   const data = query.data
   if (page === 'prediction' && data.session && data.session.status !== 'drafting') return <Navigate to={sessionDestination(data.session)} replace />
   if ((page === 'initial' || page === 'final') && data.session?.status === 'drafting') return <Navigate to={`/learning/${data.session.id}/edit`} replace />

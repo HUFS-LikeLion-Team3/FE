@@ -1,7 +1,8 @@
 import { LoadingRows } from '@/components/ui/LoadingSkeleton'
-import { useMemo, useState } from 'react'
+import { sessionDestination } from '@/features/learning/session-routes'
+import { lazy, useMemo, useState } from 'react'
 import { useQuery, useInfiniteQuery } from '@tanstack/react-query'
-import { Link } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 import { ApiError } from '@/lib/api-client'
 import { Button } from '@/components/ui/Button'
 import { FilterChip } from '@/components/ui/FilterChip'
@@ -15,6 +16,10 @@ import {
   type NewsItem,
   type StatusFilter,
 } from './api'
+
+import { WorkbookNavigation } from '../patterns/PatternNavigation'
+
+const LearningPatternsPage = lazy(() => import('../patterns/LearningPatternsPage'))
 
 const secondaryLinkClass =
   'inline-flex min-h-12 w-full items-center justify-center rounded-control border border-border-default bg-surface-canvas px-4 py-3 font-sans text-[15px] font-medium text-text-primary hover:bg-brand-subtle focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-pressed'
@@ -47,7 +52,7 @@ function SessionCard({
       <p className="font-sans text-[13px] text-text-muted">
         마지막 활동 {new Date(session.updatedAt).toLocaleDateString('ko-KR')}
       </p>
-      <Link to={display.href(session)} className={secondaryLinkClass}>
+      <Link to={session.sessionType === 'replay' ? sessionDestination(session) : display.href(session)} className={secondaryLinkClass}>
         {display.action}
       </Link>
     </li>
@@ -57,6 +62,11 @@ function SessionCard({
 // ─── 학습 기록 페이지 ─────────────────────────────────────────────────────────
 
 export default function LearningHistoryPage() {
+  const [params] = useSearchParams()
+  return params.get('tab') === 'patterns' ? <LearningPatternsPage /> : <HistoryRecords />
+}
+
+function HistoryRecords() {
   const [filter, setFilter] = useState<StatusFilter>('all')
 
   const sessionsQuery = useInfiniteQuery({
@@ -94,6 +104,8 @@ export default function LearningHistoryPage() {
           처음의 판단부터 관찰과 회고까지, 나의 학습을 이어가세요.
         </p>
       </div>
+
+      <WorkbookNavigation />
 
       {/* 상태 필터 */}
       <div className="flex flex-wrap gap-3" role="group" aria-label="상태 필터">

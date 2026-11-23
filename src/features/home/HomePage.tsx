@@ -1,4 +1,5 @@
 import { LoadingRows, LoadingSkeleton, SkeletonBlock } from '@/components/ui/LoadingSkeleton'
+import { sessionDestination } from '@/features/learning/session-routes'
 import { useQuery } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
 import { ApiError } from '@/lib/api-client'
@@ -46,7 +47,7 @@ function InProgressCard({
       <p className="font-sans text-[13px] text-text-muted">
         마지막 활동 {new Date(session.updatedAt).toLocaleDateString('ko-KR')}
       </p>
-      <Link to={display.href(session)} className={secondaryLinkClass}>
+      <Link to={session.sessionType === 'replay' ? sessionDestination(session) : display.href(session)} className={secondaryLinkClass}>
         {display.action}
       </Link>
     </div>
