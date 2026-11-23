@@ -18,7 +18,7 @@ const news = replayFixtures.map(scenario => ({
     .filter((id): id is string => !!id),
 })).sort((a, b) => b.publishedAt.localeCompare(a.publishedAt) || a.id.localeCompare(b.id))
 
-const toResponse = ({ id, title, category, briefing, contentType, referenceAt, publishedAt }: typeof news[number]) => ({ id, title, category, briefing, contentType, referenceAt, publishedAt })
+const toResponse = ({ id, title, category, briefing, contentType, referenceAt, publishedAt }: typeof news[number]) => ({ id, title, category, briefing, contentType, replayStatus: 'eligible' as const, referenceAt, publishedAt })
 // 목 데이터의 시각은 모두 +09:00 표기라 앞 10자리가 서울 기준 날짜다.
 const seoulDay = (value: string) => value.slice(0, 10)
 

@@ -65,10 +65,9 @@ export function replayCategoryLabel(category: string) {
 }
 
 const monthFormat = new Intl.DateTimeFormat('ko-KR', { timeZone: 'Asia/Seoul', year: 'numeric', month: 'long' })
-/** 기준 시점(referenceAt, 없으면 publishedAt)을 서울 시간대의 연·월로 표시한다. */
-export function formatReplayMonth(value: string) {
-  const date = new Date(value)
-  return Number.isNaN(date.getTime()) ? '날짜 정보 없음' : monthFormat.format(date)
+/** 기준 시점을 서울 시간대의 연·월로 표시한다. */
+export function formatReplayMonth(value: string | null) {
+  return value ? monthFormat.format(new Date(value)) : '기준 월 정보 없음'
 }
 
 /** 시장 대상 필터 옵션. id는 URL(?target=)과 목록 요청의 marketTargetId에 그대로 쓴다. */
@@ -103,20 +102,18 @@ export function toReplayNewsQuery(filters: ReplayFilters): ReplayNewsQuery {
 }
 export const replayNewsKey = (filters: ReplayFilters) => ['replay', 'news', 'list', filters] as const
 
-/** referenceAt은 표시 기준 시점이다. 응답에 없거나 형식이 틀리면 publishedAt으로 대체한 값이다. */
-export type ReplayNews = { id: string; title: string; category: string; briefing: string; referenceAt: string }
+/** referenceAt은 뉴스의 기준 시점이다. 유효한 기준 시점이 없으면 null이다. */
+export type ReplayNews = { id: string; title: string; category: string; briefing: string; referenceAt: string | null }
 export type ReplayNewsItem = ReplayNews
 export type ReplayNewsPage = { content: ReplayNewsItem[]; page: number; size: number; hasNext: boolean; totalElements: number | null }
 
 const isTime = (value: unknown): value is string => typeof value === 'string' && !Number.isNaN(Date.parse(value))
-const timestamp = z.string().refine(isTime)
-// referenceAt은 형식이 틀려도 파싱을 실패시키지 않고 publishedAt으로 대체한다.
 const newsFields = {
   id: z.string().min(1), title: z.string(), category: z.string(), briefing: z.string(),
-  contentType: z.literal('replay'), publishedAt: timestamp, referenceAt: z.unknown().optional(),
+  contentType: z.literal('replay'), referenceAt: z.unknown().optional(),
 }
-const toReplayNews = ({ id, title, category, briefing, publishedAt, referenceAt }: { id: string; title: string; category: string; briefing: string; publishedAt: string; referenceAt?: unknown }): ReplayNews =>
-  ({ id, title, category, briefing, referenceAt: isTime(referenceAt) ? referenceAt : publishedAt })
+const toReplayNews = ({ id, title, category, briefing, referenceAt }: { id: string; title: string; category: string; briefing: string; referenceAt?: unknown }): ReplayNews =>
+  ({ id, title, category, briefing, referenceAt: isTime(referenceAt) ? referenceAt : null })
 
 // 기존 뉴스 목록 형태(content[] · id)로 확정됐다 (BE 확인). contentType으로 Replay 뉴스인지 확인한다.
 export const replayNewsPageSchema = z.object({
@@ -125,7 +122,11 @@ export const replayNewsPageSchema = z.object({
   content: z.array(z.object(newsFields)),
 }).transform(({ content, totalElements, ...meta }): ReplayNewsPage => ({ ...meta, totalElements: totalElements ?? null, content: content.map(toReplayNews) }))
 
-export const replayNewsSchema = z.object(newsFields).transform(toReplayNews)
+// The general news detail endpoint also returns published news that is not eligible for Replay.
+export const replayNewsSchema = z.object({
+  ...newsFields,
+  replayStatus: z.enum(['eligible', 'featured']),
+}).transform(toReplayNews)
 
 const uuid = z.string().uuid()
 
