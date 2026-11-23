@@ -1,9 +1,10 @@
+import { PageLoading } from '@/features/learning/components/PageLoading'
 import { lazy, Suspense } from 'react'
 import { Notice, PageTitle, Shell } from '../learning/components/PagePrimitives'
 
 const ReplayWorkspace = import.meta.env.DEV ? lazy(() => import('./ReplayWorkspace')) : null
 const ReplayApiRoutes = import.meta.env.VITE_REPLAY_API_ENABLED === 'true' ? lazy(() => import('./ReplayNewsRoutes')) : null
-const fallback = <p role="status">지난 뉴스를 불러오는 중…</p>
+const fallback = <PageLoading />
 
 export default function ReplayPage() {
   if (ReplayApiRoutes) return <Suspense fallback={fallback}><ReplayApiRoutes /></Suspense>

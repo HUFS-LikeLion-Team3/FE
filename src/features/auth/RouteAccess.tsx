@@ -1,3 +1,4 @@
+import { AuthLoading } from '@/features/learning/components/PageLoading'
 import { useSyncExternalStore, type ReactNode } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { Navigate, Outlet, useLocation, useSearchParams } from 'react-router-dom'
@@ -22,7 +23,7 @@ function useSession() {
 }
 
 function CheckingSession() {
-  return <main className="p-8"><p role="status">로그인 상태를 확인하는 중…</p></main>
+  return <AuthLoading label="로그인 상태를 확인하는 중…" />
 }
 
 function SessionCheckError({ error, retry, pending }: { error: Error; retry: () => void; pending: boolean }) {

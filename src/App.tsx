@@ -1,6 +1,7 @@
 import { lazy, Suspense } from 'react'
 import { ProtectedRoutes, SignInRoute } from '@/features/auth/RouteAccess'
 import { createBrowserRouter, Navigate, Route, RouterProvider, Routes } from 'react-router-dom'
+import { PageLoading } from '@/features/learning/components/PageLoading'
 
 const ReplayResultsPage = lazy(() => import('@/features/replay/ReplayResultsPage'))
 const ReplayPreviewPage = import.meta.env.DEV ? lazy(() => import('@/features/replay/ReplayPreviewPage')) : null
@@ -30,14 +31,14 @@ function AppRoutes() {
   return (
     <Routes>
       <Route path="/login" element={<SignInRoute><LoginPage /></SignInRoute>} />
-      <Route path="/auth/kakao/callback" element={<Suspense fallback={<p role="status">불러오는 중…</p>}><KakaoCallbackPage /></Suspense>} />
-      <Route path="/terms" element={<Suspense fallback={<p role="status">불러오는 중…</p>}><PolicyPage kind="terms" /></Suspense>} />
-      <Route path="/privacy" element={<Suspense fallback={<p role="status">불러오는 중…</p>}><PolicyPage kind="privacy" /></Suspense>} />
+      <Route path="/auth/kakao/callback" element={<KakaoCallbackPage />} />
+      <Route path="/terms" element={<PolicyPage kind="terms" />} />
+      <Route path="/privacy" element={<PolicyPage kind="privacy" />} />
       {ReplayPreviewPage && <Route path="/dev/replay/preview/results" element={<ReplayPreviewPage />} />}
       <Route element={<ProtectedRoutes />}>
         <Route path="/" element={<HomePage />} />
         <Route path="/settings/interests" element={<InterestSettingPage editing />} />
-        <Route path="/onboarding" element={<Suspense fallback={<p role="status">불러오는 중…</p>}><InterestSettingPage /></Suspense>} />
+        <Route path="/onboarding" element={<InterestSettingPage />} />
         <Route path="/replay/:replayId/results" element={<ReplayResultsPage />} />
         <Route path="/explore" element={<NewsExplorePage />} />
         <Route path="/replay/*" element={<ReplayPage />} />
@@ -51,9 +52,9 @@ function AppRoutes() {
         <Route path="/learning/:sessionId/feedback" element={<AssignedProductPage page="initial" />} />
         <Route path="/learning/:sessionId/final-feedback" element={<AssignedProductPage page="final" />} />
       </Route>
-      {AssignedPreviewApp && <Route path="/dev/pages/*" element={<Suspense fallback={<p role="status">불러오는 중…</p>}><AssignedPreviewApp /></Suspense>} />}
-      {UiPreviewPage && <Route path="/dev/ui" element={<Suspense fallback={<p role="status">불러오는 중…</p>}><UiPreviewPage /></Suspense>} />}
-      {InterestSettingPreviewPage && <Route path="/dev/onboarding" element={<Suspense fallback={<p role="status">불러오는 중…</p>}><InterestSettingPreviewPage /></Suspense>} />}
+      {AssignedPreviewApp && <Route path="/dev/pages/*" element={<AssignedPreviewApp />} />}
+      {UiPreviewPage && <Route path="/dev/ui" element={<UiPreviewPage />} />}
+      {InterestSettingPreviewPage && <Route path="/dev/onboarding" element={<InterestSettingPreviewPage />} />}
       {HomePreviewPage && <Route path="/dev/home" element={<HomePreviewPage />} />}
       {LearningHistoryPreviewPage && <Route path="/dev/learning" element={<LearningHistoryPreviewPage />} />}
       {FlowPreviewPage && <Route path="/dev/flow" element={<FlowPreviewPage />} />}
@@ -63,5 +64,5 @@ function AppRoutes() {
 }
 
 // A data router enables useBlocker for unsaved prediction navigation.
-const router = createBrowserRouter([{ path: '*', element: <AppRoutes /> }])
-export default function App() { return <Suspense fallback={<p role="status">불러오는 중…</p>}><RouterProvider router={router} /></Suspense> }
+const router = createBrowserRouter([{ path: '*', element: <Suspense fallback={<PageLoading />}><AppRoutes /></Suspense> }])
+export default function App() { return <RouterProvider router={router} /> }

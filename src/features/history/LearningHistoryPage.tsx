@@ -1,3 +1,4 @@
+import { LoadingRows } from '@/components/ui/LoadingSkeleton'
 import { sessionDestination } from '@/features/learning/session-routes'
 import { lazy, useMemo, useState } from 'react'
 import { useQuery, useInfiniteQuery } from '@tanstack/react-query'
@@ -121,9 +122,7 @@ function HistoryRecords() {
 
       {/* 상태별 렌더링 */}
       {isLoading ? (
-        <p role="status" className="font-sans text-[14px] text-text-muted">
-          학습 기록을 불러오는 중…
-        </p>
+        <LoadingRows label="학습 기록을 불러오는 중" />
       ) : isError && !sessions.length ? (
         <div role="alert" className="space-y-3 rounded-card bg-status-error-bg px-5 py-4">
           <p className="font-sans text-[14px] font-medium text-status-error">
