@@ -37,6 +37,7 @@ export type NewsView = {
   term: { name: string; description: string; url: string; sourceLabel: string } | null
 }
 export type FeedbackView = {
+  learningNews?: Pick<NewsView, 'title' | 'facts'>
   targets: Target[]; draft: Draft; items: Record<string, FeedbackItem[]>; sessionItems?: FeedbackItem[]
   inputCutoffAt?: string | null; flowSummary?: string | null; generatedAt?: string | null; reflectionSavedAt?: string | null
   observationRecords?: Record<string, { horizon: Horizon; status: 'pending' | 'ready' | 'unavailable'; text: string }[]>
