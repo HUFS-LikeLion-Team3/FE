@@ -118,6 +118,7 @@ export async function loadSessionFeedback<T extends Pick<PageData, 'targets' | '
   result.feedback = {
     targets: saved.targets, draft: saved.draft, items, sessionItems, sessionId: session.id, observation,
     reflection: '', reflectionSavedAt: null,
+    failureCode: feedback?.failureCode ?? null,
     generatedAt: feedback?.generatedAt ? formatTime(feedback.generatedAt) : null,
     flowSummary: feedback?.flowSummary ?? null,
     inputCutoffAt: feedback?.inputCutoffAt ? formatTime(feedback.inputCutoffAt) : null,

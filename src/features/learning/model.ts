@@ -38,6 +38,7 @@ export type NewsView = {
 }
 export type FeedbackView = {
   targets: Target[]; draft: Draft; items: Record<string, FeedbackItem[]>; sessionItems?: FeedbackItem[]
+  failureCode?: string | null
   inputCutoffAt?: string | null; flowSummary?: string | null; generatedAt?: string | null; reflectionSavedAt?: string | null
   observationRecords?: Record<string, { horizon: Horizon; status: 'pending' | 'ready' | 'unavailable'; text: string }[]>
   outcomesState?: 'loading' | 'error'
