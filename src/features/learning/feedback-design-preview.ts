@@ -19,7 +19,7 @@ const review = {
 function initialItems(target: Target) {
   const rate = target.kind === 'rate'
   return [
-    item('initial_market_impact', 'AI의 방향 판단', rate
+    item('initial_market_impact', '예측 근거 분석', rate
       ? '이번 발표에서는 단기 상승 쪽에 무게를 둡니다. 연준이 정책금리를 3.75~4.00%로 올리고 물가가 여전히 높아 2% 목표 복귀를 서두르겠다고 밝힌 만큼, 이 자료에서는 향후 단기 금리 경로 기대가 높아지며 미국 10년물 금리에도 상방 압력이 전달될 가능성이 더 큽니다. T5·T20도 같은 상승 판단을 적었는데, 현재 자료만 보면 적어도 방향 자체는 단기와 크게 어긋나지 않습니다.'
       : '이번 발표에서는 단기 하락 쪽에 무게를 둡니다. 연준이 정책금리를 0.25%p 인상하고 물가가 여전히 높다고 강조한 만큼, 이 자료에서는 할인율 상승 압력이 NASDAQ 100에 먼저 부담을 줄 가능성이 더 커 보입니다. T5·T20도 같은 상승 판단을 적었지만, 현재 근거만으로는 금리 인상 직후의 밸류에이션 부담을 뒤집을 추가 재료가 확인되지 않아 같은 방향 연장은 설득력이 약합니다.'),
     item('initial_prediction_review', '내 예측 근거 평가', rate ? review.yield : review.nasdaq),

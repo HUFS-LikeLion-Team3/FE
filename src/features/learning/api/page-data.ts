@@ -91,7 +91,7 @@ export async function loadPage(page: 'news' | 'prediction' | 'initial' | 'final'
   return loadSessionFeedback(result, session, page === 'final' ? 'final' : 'initial', signal)
 }
 
-export async function loadSessionFeedback<T extends Pick<PageData, 'targets' | 'draft' | 'feedback' | 'feedbackState' | 'poll' | 'noFeedback'>>(result: T, session: SessionDto, stage: 'initial' | 'final', signal?: AbortSignal) {
+export async function loadSessionFeedback<T extends Pick<PageData, 'targets' | 'draft' | 'feedback' | 'feedbackState' | 'poll' | 'noFeedback'> & { news?: Pick<NewsView, 'title' | 'facts'> }>(result: T, session: SessionDto, stage: 'initial' | 'final', signal?: AbortSignal) {
   const apiClient = session.sessionType === 'replay' ? replayLearningApi : api
   const saved = result
   const summaries = await apiClient.feedbacks(session.id, signal)
@@ -118,6 +118,7 @@ export async function loadSessionFeedback<T extends Pick<PageData, 'targets' | '
   result.feedback = {
     targets: saved.targets, draft: saved.draft, items, sessionItems, sessionId: session.id, observation,
     reflection: '', reflectionSavedAt: null,
+    learningNews: result.news ? { title: result.news.title, facts: result.news.facts } : undefined,
     failureCode: feedback?.failureCode ?? null,
     generatedAt: feedback?.generatedAt ? formatTime(feedback.generatedAt) : null,
     flowSummary: feedback?.flowSummary ?? null,
@@ -142,7 +143,7 @@ export async function loadFeedbackNotes(sessionId: string, targets: Target[], si
   }
 }
 const itemTitles: Record<string, string> = {
-  news_analysis: '뉴스 핵심 해설', initial_market_impact: 'AI의 방향 판단', initial_prediction_review: '내 예측 근거 평가',
+  news_analysis: '뉴스 핵심 해설', initial_market_impact: '예측 근거 분석', initial_prediction_review: '내 예측 근거 평가',
   final_market_explanation: '실제 변동의 배경', final_prediction_review: '예측 결과와 근거 평가', final_takeaway: '이번 사례에서 배운 점',
   flow_summary: '판단 흐름 요약', initial_uncertainty: '불확실한 점', initial_counter_scenario: '반대 시나리오', initial_factor_to_review: '함께 살펴볼 요소',
   final_observed_flow: '관찰된 흐름', final_co_observed_factors: '함께 확인된 요소', final_reflection_improvement: '회고 보완점', final_next_hypothesis: '다음 가설 점검', interpretation_limit: '해석 한계',

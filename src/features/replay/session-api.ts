@@ -1,5 +1,6 @@
 import { z } from 'zod'
 import { ApiError } from '@/lib/api-client'
+import type { LearningNews } from '../learning/learning-note-data'
 import type { NoteDto, SessionDto } from '../learning/api/contracts'
 import { formatTime, loadPredictionDraft, loadSessionFeedback, toTarget, type PageData } from '../learning/api/page-data'
 import { replayLearningApi as api } from '../learning/api/service'
@@ -66,15 +67,23 @@ export async function loadReplayEditor(newsId: string, signal?: AbortSignal): Pr
   }
 }
 
-export async function loadReplayFeedback(id: string, stage: 'initial' | 'final', signal?: AbortSignal, cached?: Awaited<ReturnType<typeof loadReplaySaved>>) {
+export async function loadReplayFeedback(id: string, stage: 'initial' | 'final', signal?: AbortSignal, cached?: Awaited<ReturnType<typeof loadReplaySaved>> & { news?: LearningNews }) {
   const session = await getReplaySession(id, signal)
   if (session.status === 'drafting' || (stage === 'final' && (session.status !== 'completed' || !hasRevealedResults(session.resultsRevealedAt)))) {
     return { session, ...feedbackDefaults, saved: undefined }
   }
-  const saved = cached ?? await loadReplaySaved(session, signal)
-  const result: Pick<PageData, 'targets' | 'draft' | 'feedback' | 'feedbackState' | 'poll'> = { ...saved, ...feedbackDefaults }
+  const [saved, news] = await Promise.all([
+    cached ?? loadReplaySaved(session, signal),
+    cached?.news ?? getReplayNews(session.newsId, signal)
+      .then((item): LearningNews => ({ title: item.title, facts: [] }))
+      // Auxiliary news context must not hide an otherwise valid saved feedback.
+      // Never fall back to Live news or infer facts from generated prose.
+      .catch(() => undefined),
+  ])
+  signal?.throwIfAborted()
+  const result: Pick<PageData, 'targets' | 'draft' | 'feedback' | 'feedbackState' | 'poll'> & { news?: LearningNews } = { ...saved, ...feedbackDefaults, news }
   await loadSessionFeedback(result, session, stage, signal)
-  return { session, saved, ...result }
+  return { session, saved: { ...saved, news }, ...result }
 }
 
 function toReceipt(id: string, notes: NoteDto[], savedAt: string, clientRequestId: string): ReplayReceipt {
