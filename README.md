@@ -46,7 +46,7 @@ pnpm dev
 
 `vercel.json`의 SPA rewrite로 `/login`·`/auth/kakao/callback` 등 직접 접속과 새로고침을 앱 라우터로 연결합니다. 이 설정은 API 프록시가 아닙니다. Vite의 개발 프록시는 배포 환경에서 동작하지 않으므로, Vercel의 Production 환경에 `VITE_API_BASE_URL`을 공개 HTTPS API origin으로, `VITE_KAKAO_CLIENT_ID`를 공개 REST API 키로 설정합니다. 브라우저에서 API에 접근할 수 있도록 BE의 CORS 허용 origin도 운영 FE 주소와 맞춥니다.
 
-작업 PR을 `dev`에 병합하고 검증한 뒤, 팀장이 `dev` → `main` PR을 병합해 운영 배포합니다. 빌드 환경 변수 변경 시에는 다시 배포해야 반영됩니다. 배포 후 로그인 주소 직접 접속·새로고침, 카카오 로그인과 콜백 복귀를 확인합니다. P1 Replay 개발 목 화면은 운영 빌드에 포함되지 않습니다.
+작업 PR을 `dev`에 병합하고 검증한 뒤, 팀장이 `dev` → `main` PR을 병합해 운영 배포합니다. 빌드 환경 변수 변경 시에는 다시 배포해야 반영됩니다. 배포 후 로그인 주소 직접 접속·새로고침, 카카오 로그인과 콜백 복귀를 확인합니다. P1 Replay 개발 목 화면은 운영 빌드에 포함되지 않습니다. [Replay QA](docs/replay-qa.md)에서 dev Preview 설정과 테스트용 뉴스 등록 절차를 확인할 수 있습니다.
 
 ## 명령어
 
