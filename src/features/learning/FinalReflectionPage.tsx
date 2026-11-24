@@ -2,7 +2,6 @@ import { useRef, useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link, Navigate, useBeforeUnload, useBlocker, useNavigate, useParams } from 'react-router-dom'
 import { Button } from '@/components/ui/Button'
-import { FilterChip } from '@/components/ui/FilterChip'
 import { TextArea } from '@/components/ui/TextField'
 import { PageTitle, Shell, TargetSwitcher, Notice, linkClass } from './components/PagePrimitives'
 import { QueryState } from './components/QueryState'
@@ -31,8 +30,6 @@ function FinalReflectionEditor({ data }: { data: WorkbookData }) {
   const navigate = useNavigate()
   const client = useQueryClient()
   const [answers, setAnswers] = useState({ learned: '', missed_variable: '', next_check: '' })
-  const [prompt, setPrompt] = useState<typeof prompts[number]['key']>('learned')
-  const [all, setAll] = useState(false)
   const [active, setActive] = useState(data.targets[0]?.id ?? '')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -43,6 +40,7 @@ function FinalReflectionEditor({ data }: { data: WorkbookData }) {
   useBeforeUnload(event => { if ((dirty || busy) && !allowNavigation.current) { event.preventDefault(); event.returnValue = '' } })
   const target = data.targets.find(t => t.id === active) ?? data.targets[0]
   const outcome = data.outcomes.targets.find(t => t.sessionTargetId === target?.id)
+  const notes = data.notes.filter(note => note.sessionTargetId === target?.id && (note.reflectionType === 'day_1' || note.reflectionType === 'day_5'))
   const save = async () => {
     if (busy || !dirty) return
     const payload = prompts.map(p => ({ promptKey: p.key, body: answers[p.key].trim() })).filter(a => a.body)
@@ -67,10 +65,50 @@ function FinalReflectionEditor({ data }: { data: WorkbookData }) {
     } catch (error) { setError(error instanceof Error ? error.message : '회고를 저장하지 못했어요. 입력은 유지했어요.') }
     finally { setBusy(false) }
   }
-  return <Shell><PageTitle label="WORKBOOK / REFLECTION" title="처음의 생각과 지금의 관점을 잇다" description="모든 대상의 관찰이 종료됐어요. 하나의 질문에만 답해도 회고를 완료할 수 있어요." /><TargetSwitcher targets={data.targets} active={target?.id ?? ''} onChange={setActive} />
-    <div className="grid grid-cols-[minmax(0,5fr)_minmax(0,3fr)] items-start gap-12"><section className="space-y-6"><h2 className="text-section">이번 관찰에서 남기고 싶은 생각</h2><fieldset disabled={busy} className="space-y-6"><legend className="sr-only">최종 회고 질문</legend><div className="flex gap-2">{prompts.map(p => <FilterChip key={p.key} selected={prompt === p.key} onClick={() => setPrompt(p.key)}>{p.label}{answers[p.key].trim() ? ' · 작성됨' : ''}</FilterChip>)}</div>{prompts.filter(p => all || p.key === prompt).map(p => <TextArea key={p.key} label={`${p.label} · 선택한 질문`} value={answers[p.key]} onChange={event => { setAnswers(previous => ({ ...previous, [p.key]: event.target.value })); setError(null) }} rows={1} placeholder="처음의 판단과 관찰을 돌아보며 생각을 적어보세요." helperText="답변 1개 이상이면 저장할 수 있어요. 세 질문 모두 작성할 필요는 없습니다." />)}<Button variant="text" className="w-full" onClick={() => setAll(!all)}>{all ? '선택한 질문만 보기' : '다른 질문 작성 보기'}</Button></fieldset>
-      {error && <Notice title="회고 저장 실패" error>{error} 답변은 유지했어요. 같은 답변을 다시 저장하면 동일한 요청으로 재시도해요.</Notice>}<Button className="w-full" disabled={!dirty} loading={busy} onClick={() => void save()}>회고 저장하기</Button><Link to={`/learning/${sessionId}/results`} className={`${linkClass} w-full`} aria-disabled={busy}>나중에 하기</Link>
-    </section><aside className="space-y-6 rounded-card bg-surface-subtle p-6"><h2 className="text-section">당시 예측과 관찰</h2>{target && horizons.map(h => <div key={h} className="space-y-2"><p className="text-control">{h}거래일 · {directionLabel(target, data.draft[target.id]?.[h]?.direction ?? null)}</p><p className="whitespace-pre-wrap text-meta text-text-secondary">{data.draft[target.id]?.[h]?.reason || '판단 이유 미작성'}</p>{outcome?.observations.filter(o => o.horizon === h).map(o => <p key={o.horizon} className="text-meta text-text-secondary">{o.status === 'ready' ? `${o.observedValue?.toLocaleString('ko-KR') ?? '—'} ${o.unit} · ${o.observationSessionDate ?? '날짜 없음'}` : o.unavailableReason ?? '관측 자료 없음'}</p>)}</div>)}<h3 className="text-control">1·5거래일 중간 메모</h3>{data.notes.filter(n => n.sessionTargetId === target?.id).map(n => <p key={n.id} className="whitespace-pre-wrap text-meta">{n.body} · {formatTime(n.createdAt)}</p>)}<Link to={`/learning/${sessionId}/results`} className={`${linkClass} w-full border border-border-default bg-surface-canvas`}>관측 결과와 메모 보기</Link></aside></div>
+  return <Shell responsive>
+    <PageTitle label="WORKBOOK / REFLECTION" title="처음의 생각과 지금의 관점을 잇다" description="뉴스와 이전 판단을 돌아보고, 관찰을 통해 달라진 생각을 기록해 보세요." />
+    <section aria-labelledby="reflection-summary" className="space-y-6 rounded-card bg-surface-subtle p-4 sm:p-6">
+      <h2 id="reflection-summary" className="text-section">당시 예측과 관찰</h2>
+      <p className="break-words text-control font-medium">{data.news.title}</p>
+      <TargetSwitcher targets={data.targets} active={target?.id ?? ''} onChange={setActive} />
+      {target && <div className="grid gap-4 md:grid-cols-3">
+        {horizons.map(horizon => {
+          const prediction = data.draft[target.id]?.[horizon]
+          const observation = outcome?.observations.find(item => item.horizon === horizon)
+          return <article key={horizon} className="min-w-0 space-y-3 rounded-card bg-surface-canvas p-4">
+            <h3 className="text-control font-medium">{horizon}거래일</h3>
+            <dl className="space-y-3 break-words text-meta">
+              <div><dt className="font-medium">예측 방향</dt><dd>{directionLabel(target, prediction?.direction ?? null)}</dd></div>
+              <div><dt className="font-medium">판단 이유</dt><dd className="whitespace-pre-wrap">{prediction?.reason || '판단 이유 미작성'}</dd></div>
+              <div><dt className="font-medium">실제 관측 결과</dt><dd>{
+                observation?.status === 'ready'
+                  ? `${observation.observedValue?.toLocaleString('ko-KR') ?? '—'} ${observation.unit} · ${observation.observationSessionDate ?? '날짜 없음'}`
+                  : observation?.unavailableReason ?? (observation?.status === 'pending' ? '관측 결과 확인 중' : '관측 자료 없음')
+              }</dd></div>
+            </dl>
+          </article>
+        })}
+      </div>}
+      <div className="space-y-2">
+        <h3 className="text-control font-medium">1·5거래일 중간 메모</h3>
+        {notes.length ? notes.map(note => <p key={note.id} className="whitespace-pre-wrap break-words text-meta">{note.body} · {formatTime(note.createdAt)}</p>) : <p className="text-meta text-text-muted">아직 저장된 메모가 없어요.</p>}
+      </div>
+      <Link to={`/learning/${sessionId}/results`} className={`${linkClass} w-full border border-border-default bg-surface-canvas`}>관측 결과와 메모 보기</Link>
+    </section>
+    <section aria-labelledby="reflection-questions" className="space-y-6">
+      <h2 id="reflection-questions" className="text-section">이번 관찰에서 남기고 싶은 생각</h2>
+      <p id="reflection-help" className="text-meta text-text-secondary">세 항목 중 하나만 작성해도 저장할 수 있어요.</p>
+      <fieldset disabled={busy} aria-describedby="reflection-help" className="space-y-4">
+        <legend className="sr-only">최종 회고 질문</legend>
+        {prompts.map(({ key, label }) => <TextArea key={key} label={label} value={answers[key]} onChange={event => {
+          setAnswers(previous => ({ ...previous, [key]: event.target.value }))
+          setError(null)
+        }} rows={3} />)}
+      </fieldset>
+      {error && <Notice title="회고 저장 실패" error>{error} 답변은 유지했어요. 같은 답변을 다시 저장하면 동일한 요청으로 재시도해요.</Notice>}
+      <Button className="w-full" disabled={!dirty} loading={busy} onClick={() => void save()}>회고 저장하기</Button>
+      <Link to={`/learning/${sessionId}/results`} className={`${linkClass} w-full`} aria-disabled={busy}>나중에 하기</Link>
+    </section>
     {blocker.state === 'blocked' && <Modal title="저장하지 않은 회고가 있어요" onClose={() => { if (!busy) blocker.reset() }}><p className="text-ui">저장하지 않고 나가면 답변이 사라져요.</p><Button disabled={busy} onClick={() => blocker.reset()}>계속 작성하기</Button><Button variant="secondary" disabled={busy} onClick={() => blocker.proceed()}>저장하지 않고 나가기</Button></Modal>}
   </Shell>
 }
