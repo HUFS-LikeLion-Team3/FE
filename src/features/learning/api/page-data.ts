@@ -91,7 +91,7 @@ export async function loadPage(page: 'news' | 'prediction' | 'initial' | 'final'
   return loadSessionFeedback(result, session, page === 'final' ? 'final' : 'initial', signal)
 }
 
-export async function loadSessionFeedback<T extends Pick<PageData, 'targets' | 'draft' | 'feedback' | 'feedbackState' | 'poll' | 'noFeedback'> & Partial<Pick<PageData, 'news'>>>(result: T, session: SessionDto, stage: 'initial' | 'final', signal?: AbortSignal) {
+export async function loadSessionFeedback<T extends Pick<PageData, 'targets' | 'draft' | 'feedback' | 'feedbackState' | 'poll' | 'noFeedback'> & { news?: Pick<NewsView, 'title' | 'facts'> }>(result: T, session: SessionDto, stage: 'initial' | 'final', signal?: AbortSignal) {
   const apiClient = session.sessionType === 'replay' ? replayLearningApi : api
   const saved = result
   const summaries = await apiClient.feedbacks(session.id, signal)
