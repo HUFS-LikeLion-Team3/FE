@@ -16,6 +16,7 @@ const KakaoCallbackPage = lazy(() => import('@/features/auth/KakaoCallbackPage')
 const InterestSettingPage = lazy(() => import('@/features/interest/InterestSettingPage'))
 const NewsExplorePage = lazy(() => import('@/features/explore/NewsExplorePage'))
 const ReplayPage = lazy(() => import('@/features/replay/ReplayPage'))
+const NewsAdminPage = lazy(() => import('@/features/news-admin/NewsAdminPage'))
 const HomePage = lazy(() => import('@/features/home/HomePage'))
 const LearningHistoryPage = lazy(() => import('@/features/history/LearningHistoryPage'))
 const PolicyPage = lazy(() => import('@/features/auth/PolicyPage'))
@@ -40,6 +41,7 @@ function AppRoutes() {
         <Route path="/settings/interests" element={<InterestSettingPage editing />} />
         <Route path="/onboarding" element={<InterestSettingPage />} />
         <Route path="/replay/:replayId/results" element={<ReplayResultsPage />} />
+        <Route path="/admin/news" element={<NewsAdminPage />} />
         <Route path="/explore" element={<NewsExplorePage />} />
         <Route path="/replay/*" element={<ReplayPage />} />
         <Route path="/news/:newsId" element={<AssignedProductPage page="news" />} />
