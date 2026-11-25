@@ -7,7 +7,7 @@ export type Target = { id: string; name: string; kind: 'index' | 'fx' | 'rate'; 
 export type ReferenceMarket = { status: 'ready' | 'pending' | 'unavailable'; value: number | null; unit: string; asOf: string | null; changeValue: number | null; changePercent: number | null; sourceName: string | null; sourceUrl: string | null; unavailableReason: string | null }
 export type Prediction = { direction: Direction | null; reason: string }
 export type Draft = Record<string, Record<Horizon, Prediction>>
-export type Source = { id: string; title: string; publisher: string; date: string; quote: string; url: string }
+export type Source = { id: string; title: string; publisher: string; date: string; quote: string; summary?: string; url: string }
 export type FeedbackItem = { type?: string; title: string; body: string; sources: Source[] }
 export type FeedbackState = 'ready' | 'loading' | 'transient-error' | 'validation-error' | 'limited' | 'unavailable' | 'pending' | 'generating' | 'failed'
 

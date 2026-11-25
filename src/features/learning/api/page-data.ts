@@ -26,9 +26,9 @@ export async function loadNews(newsId: string, signal?: AbortSignal, newsData?: 
   const primary = sources.sources.find(s => s.isPrimary)
   return { id: news.id, title: news.title, category: news.category, publisher: primary?.publisher ?? '발행처 정보 없음', publishedAt: formatTime(news.publishedAt),
     originalUrl: primary?.url ?? null, originalLabel: '대표 출처 보기 ↗',
-    briefing: [{ title: '주요 내용', body: news.briefing }], context: null, term: null,
+    briefing: [{ title: '발표 내용', body: news.briefing }], context: news.backgroundContext?.trim() || null, term: null,
     facts: [...facts.facts].sort((a, b) => a.sortOrder - b.sortOrder).map(f => ({ id: f.id, label: f.label, value: f.valueText, unit: f.unit ?? '', asOf: f.asOfAt ? formatTime(f.asOfAt) : null })),
-    sources: sources.sources.map(s => ({ id: s.id, title: s.title, publisher: s.publisher, date: formatTime(s.publishedAt), quote: '', url: s.url })),
+    sources: sources.sources.map(s => ({ id: s.id, title: s.title, publisher: s.publisher, date: formatTime(s.publishedAt), quote: '', summary: s.publicSummary?.trim(), url: s.url })),
     targets: [...candidates.candidates].sort((a, b) => a.sortOrder - b.sortOrder).map(c => ({ ...toTarget({ ...c, id: c.marketTargetId }), rationale: c.rationale })),
   }
 }
