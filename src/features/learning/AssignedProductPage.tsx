@@ -10,6 +10,10 @@ import { QueryState } from './components/QueryState'
 import { sessionDestination } from './session-routes'
 
 type Page = 'news' | 'prediction' | 'initial' | 'final'
+type PageQueryState = { error: unknown; data: PageData | { redirectTo: string } | undefined }
+const isPolling = (state: PageQueryState) =>
+  !state.error && !!state.data && !('redirectTo' in state.data) && state.data.poll
+
 export default function AssignedProductPage({ page }: { page: Page }) {
   const { newsId, sessionId } = useParams()
   const [params] = useSearchParams()
@@ -21,11 +25,12 @@ export default function AssignedProductPage({ page }: { page: Page }) {
     queryKey,
     queryFn: ({ signal }) => loadPage(page, newsId, sessionId, selected.split(',').filter(Boolean), signal, page === 'initial' || page === 'final' ? queryClient.getQueryData<PageData>(queryKey) : undefined),
     retry: false,
-    refetchOnWindowFocus: false,
+    // Only while waiting for feedback: returning to the tab checks right away instead of staying stale.
+    refetchOnWindowFocus: query => isPolling(query.state),
     refetchOnReconnect: false,
     // Re-entering an editor must load the saved draft before initializing local inputs.
     gcTime: page === 'prediction' ? 0 : undefined,
-    refetchInterval: query => !query.state.error && query.state.data && !('redirectTo' in query.state.data) && query.state.data.poll ? 2000 : false,
+    refetchInterval: query => isPolling(query.state) ? 2000 : false,
     refetchIntervalInBackground: false,
   })
   const context = query.data && !('redirectTo' in query.data) ? query.data.feedback : null

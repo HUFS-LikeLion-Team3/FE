@@ -16,7 +16,6 @@ export default function PredictionPage({ news, newsHref, feedbackHref, session, 
   const navigate = useNavigate()
   const [active, setActive] = useState(targets[0]?.id ?? '')
   const [review, setReview] = useState(false)
-  const [expanded, setExpanded] = useState(targets[0]?.id ?? '')
   const [error, setError] = useState<string | null>(null)
   const [actionError, setActionError] = useState<string | null>(null)
   const [busy, setBusy] = useState<'save' | 'submit' | null>(null)
@@ -42,7 +41,7 @@ export default function PredictionPage({ news, newsHref, feedbackHref, session, 
     const message = validateDraft(session.draft, targets)
     setError(message)
     if (message) return
-    setActionError(null); setExpanded(targets[0].id); setReview(true)
+    setActionError(null); setReview(true)
   }
   const submit = async () => {
     if (busy) return
@@ -82,9 +81,8 @@ export default function PredictionPage({ news, newsHref, feedbackHref, session, 
       </div>
     </fieldset>
     {review && <Modal title="예측을 확정하기 전에" onClose={closeReview}><p className="text-ui text-text-secondary">선택한 대상 {targets.length}개 · 필수 방향 {targets.length * 3}/{targets.length * 3}</p>
-      {targets.map(t => <section key={t.id} className="rounded-card bg-surface-subtle p-4"><Button variant="text" className="w-full" aria-expanded={expanded === t.id} aria-controls={`review-${t.id}`} disabled={!!busy} onClick={() => setExpanded(expanded === t.id ? '' : t.id)}>{expanded === t.id ? '⌄' : '›'} {t.name}</Button>
-        <div id={`review-${t.id}`} hidden={expanded !== t.id} className="space-y-4 pt-6">{horizons.map(h => <div key={h}><p className="text-control font-medium">{h}거래일 · {directionLabel(t, session.draft[t.id][h].direction)}</p><p className="mt-2 whitespace-pre-wrap break-words text-meta text-text-secondary">{session.draft[t.id][h].reason.trim() ? session.draft[t.id][h].reason : '판단 이유를 기록하지 않았어요.'}</p></div>)}<Button variant="text" className="w-full" disabled={!!busy} onClick={() => { setActive(t.id); closeReview() }}>이 대상 수정하기</Button></div>
-        {expanded !== t.id && <p className="mt-2 text-meta text-text-secondary">{horizons.map(h => `${h}일 ${directionLabel(t, session.draft[t.id][h].direction)}`).join(' / ')}</p>}
+      {targets.map(t => <section key={t.id} className="rounded-card bg-surface-subtle p-4"><h3 className="text-control font-medium">{t.name}</h3>
+        <div className="space-y-4 pt-6">{horizons.map(h => <div key={h}><p className="text-control font-medium">{h}거래일 · {directionLabel(t, session.draft[t.id][h].direction)}</p><p className="mt-2 whitespace-pre-wrap break-words text-meta text-text-secondary">{session.draft[t.id][h].reason.trim() ? session.draft[t.id][h].reason : '판단 이유를 기록하지 않았어요.'}</p></div>)}<Button variant="text" className="w-full" disabled={!!busy} onClick={() => { setActive(t.id); closeReview() }}>이 대상 수정하기</Button></div>
       </section>)}
       <Notice title="확정 후에는 수정할 수 없어요.">예측 대상·방향·이유는 확정한 상태로 보존됩니다.</Notice>{actionError && <Notice title="제출 실패" error>{actionError}</Notice>}
       <Button className="w-full" loading={busy === 'submit'} onClick={() => void submit()}>예측 확정하기</Button><Button variant="secondary" className="w-full" disabled={!!busy} onClick={closeReview}>계속 수정하기</Button>
