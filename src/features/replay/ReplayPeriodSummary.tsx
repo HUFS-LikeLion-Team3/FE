@@ -11,7 +11,7 @@ export default function ReplayPeriodSummary({ data, target, active, onChange }: 
   return <section className="space-y-4" aria-labelledby="replay-period-title">
     <h2 id="replay-period-title" className="text-section">세 기간의 변화, 나란히 살펴보기</h2>
     <p className="text-meta text-text-muted">{rate ? '금리 변화폭은 %p로 읽어요. 기간을 선택하면 당시 금리와 판단 이유를 확인할 수 있어요.' : '기간별 변화율과 내 예상을 함께 살펴보세요. 카드를 선택하면 당시 수치와 판단 이유를 확인할 수 있어요.'}</p>
-    <div className="grid grid-cols-3 gap-6" aria-label="Replay 관찰 기간">{horizons.map(horizon => {
+    <div className="grid grid-cols-1 gap-6 sm:grid-cols-3" aria-label="Replay 관찰 기간">{horizons.map(horizon => {
       const row = outcome?.observations.find(item => item.horizon === horizon)
       const ready = outcome?.baseline.status === 'ready' && row?.status === 'ready'
       const value = ready ? rate ? row.changeValue : row.changePercent : null

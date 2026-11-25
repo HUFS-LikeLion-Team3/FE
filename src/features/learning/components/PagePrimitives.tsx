@@ -9,7 +9,8 @@ import { newsAdminAccessQuery } from '@/features/news-admin/api'
 import type { Source, Target } from '../model'
 
 export const linkClass = 'inline-flex min-h-12 items-center justify-center rounded-control px-4 py-3 text-control focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-pressed hover:bg-brand-subtle'
-export function Shell({ children, section, responsive = false }: { children: ReactNode; section?: string; responsive?: boolean }) {
+// responsive=false는 데스크톱 고정 폭 헤더가 필요한 예외에만 사용한다. 기본은 모바일까지 맞춘 반응형이다.
+export function Shell({ children, section, responsive = true }: { children: ReactNode; section?: string; responsive?: boolean }) {
   const { pathname } = useLocation()
   const [accountOpen, setAccountOpen] = useState(false)
   const client = useQueryClient()
@@ -19,9 +20,9 @@ export function Shell({ children, section, responsive = false }: { children: Rea
   return <div className={cn("mx-auto max-w-[1296px]", responsive ? "px-5 sm:px-12" : "px-12")}>
     <header className="border-b border-border-default py-6"><div className={responsive ? "flex flex-col gap-4 lg:flex-row lg:items-start lg:gap-6" : "flex items-start gap-6"}>
       <Link to="/" className="flex-1 font-serif text-[28px] font-bold leading-[38px] focus-visible:outline-2 focus-visible:outline-brand-primary">FinSight</Link>
-      <nav aria-label="주 메뉴" className={responsive ? "flex flex-wrap gap-2 lg:gap-6" : "flex gap-6"}>{[['/', '홈'], ['/explore', '뉴스 탐색'], ['/learning', '학습 기록']].map(([to, name]) => <Link key={to} to={to} aria-current={activeSection === to ? 'page' : undefined} className={cn(linkClass, 'w-[120px]', activeSection === to ? 'text-brand-primary' : 'text-text-secondary')}>{name}</Link>)}
+      <nav aria-label="주 메뉴" className={responsive ? "grid grid-cols-4 gap-1 lg:flex lg:gap-6" : "flex gap-6"}>{[['/', '홈'], ['/explore', '뉴스 탐색'], ['/learning', '학습 기록']].map(([to, name]) => <Link key={to} to={to} aria-current={activeSection === to ? 'page' : undefined} className={cn(linkClass, responsive ? 'w-full px-2 lg:w-[120px] lg:px-4' : 'w-[120px]', activeSection === to ? 'text-brand-primary' : 'text-text-secondary')}>{name}</Link>)}
         <div className="relative">
-          <Button variant="text" className="w-[120px]" aria-expanded={accountOpen} aria-controls="account-options" onClick={() => setAccountOpen(!accountOpen)}>계정</Button>
+          <Button variant="text" className={responsive ? "w-full px-2 lg:w-[120px] lg:px-4" : "w-[120px]"} aria-expanded={accountOpen} aria-controls="account-options" onClick={() => setAccountOpen(!accountOpen)}>계정</Button>
           {accountOpen && <div id="account-options" className="absolute right-0 z-20 w-48 rounded-card border border-border-default bg-surface-canvas p-2 shadow-lg">
             {token ? <>
               {newsAdminAccess.data?.allowed && !newsAdminAccess.isError && <Link to="/admin/news" onClick={() => setAccountOpen(false)} className={`${linkClass} w-full`}>뉴스 등록</Link>}

@@ -20,7 +20,7 @@ function RequestState({ pending, error, retry }: { pending: boolean; error: Erro
 }
 
 function VariableCards({ values, reflection = false, onEvidence }: { values: VariablePattern[]; reflection?: boolean; onEvidence: (view: EvidenceView) => void }) {
-  return <div className="grid grid-cols-2 items-start gap-12">
+  return <div className="grid grid-cols-1 items-start gap-8 lg:grid-cols-2 lg:gap-12">
     {values.map(value => <article key={value.variable} className="space-y-2 rounded-card bg-surface-subtle p-4">
       <h3 className="text-control font-medium">{value.variableName} · 서로 다른 뉴스 {value.mentionCount}개</h3>
       <p className="text-meta text-text-muted">{reflection ? '놓친 변수에 대한 최종 회고에서 직접 언급한 요소예요.' : '판단 이유에서 언급한 요소예요. 문맥이나 예측의 정오를 평가하지 않아요.'}</p>
@@ -78,7 +78,7 @@ export default function LivePatterns() {
       <RequestState pending={suggestions.isPending} error={suggestions.error} retry={() => void suggestions.refetch()} />
       {suggestions.data && !suggestions.isError && (suggestions.data.insufficientData
         ? <Notice title="다음 학습 제안을 준비하고 있어요">판단 이유가 있는 서로 다른 뉴스 5개가 쌓이면, 기록에 근거한 제안을 보여드려요.</Notice>
-        : suggestions.data.suggestions.length ? <div className="grid grid-cols-2 items-start gap-12">{suggestions.data.suggestions.map(item => <article key={item.suggestionId} className="space-y-2 rounded-card bg-surface-subtle p-4">
+        : suggestions.data.suggestions.length ? <div className="grid grid-cols-1 items-start gap-8 lg:grid-cols-2 lg:gap-12">{suggestions.data.suggestions.map(item => <article key={item.suggestionId} className="space-y-2 rounded-card bg-surface-subtle p-4">
           <h3 className="text-control font-medium">{item.title}</h3><p className="text-meta text-text-muted">{item.description}</p>
           <p className="text-meta text-text-secondary">{item.reason}</p>
           <Button variant="text" disabled={!item.evidence.exampleTexts.length} onClick={() => setEvidence({
@@ -97,7 +97,7 @@ export default function LivePatterns() {
       <RequestState pending={categories.isPending} error={categories.error} retry={() => void categories.refetch()} />
       {categories.data && !categories.isError && <>
         <p className="text-control">제출 세션 {categories.data.totalSessions}개 · 예측 {categories.data.totalPredictions}건</p>
-        {categories.data.categories.length ? <ul className="grid grid-cols-2 gap-4">{categories.data.categories.map(item => <li key={item.category} className="space-y-2 rounded-card bg-surface-subtle p-4">
+        {categories.data.categories.length ? <ul className="grid grid-cols-1 gap-4 sm:grid-cols-2">{categories.data.categories.map(item => <li key={item.category} className="space-y-2 rounded-card bg-surface-subtle p-4">
           <p className="text-control font-medium">{item.categoryName} · 세션 {item.sessionCount}개 · 예측 {item.predictionCount}건</p><DirectionSummary counts={item.directionCounts} />
         </li>)}</ul> : <p className="text-meta text-text-muted">아직 제출한 예측 기록이 없어요.</p>}
         <label className="block space-y-2 text-control"><span>기간별 집계의 뉴스 분야</span>
@@ -109,7 +109,7 @@ export default function LivePatterns() {
         </label>
       </>}
       <RequestState pending={periods.isPending} error={periods.error} retry={() => void periods.refetch()} />
-      {periods.data && !periods.isError && <ul className="grid grid-cols-3 gap-4">{[...periods.data.horizons].sort((a, b) => a.tradingDays - b.tradingDays).map(item => <li key={item.horizon} className="space-y-2 rounded-card bg-surface-subtle p-4">
+      {periods.data && !periods.isError && <ul className="grid grid-cols-1 gap-4 sm:grid-cols-3">{[...periods.data.horizons].sort((a, b) => a.tradingDays - b.tradingDays).map(item => <li key={item.horizon} className="space-y-2 rounded-card bg-surface-subtle p-4">
         <p className="text-control font-medium">{item.tradingDays}거래일 · 예측 {item.predictionCount}건</p><DirectionSummary counts={item.directionCounts} />
       </li>)}</ul>}
     </details>

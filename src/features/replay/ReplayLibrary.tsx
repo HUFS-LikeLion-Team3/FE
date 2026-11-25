@@ -25,7 +25,7 @@ type Props = {
 }
 
 function LibrarySkeleton() {
-  return <div role="status" aria-label="지난 뉴스를 불러오는 중" className="grid grid-cols-2 gap-x-12 gap-y-6">
+  return <div role="status" aria-label="지난 뉴스를 불러오는 중" className="grid grid-cols-1 gap-x-12 gap-y-6 md:grid-cols-2">
     {[0, 1, 2, 3].map(index => <div key={index} aria-hidden="true" className="space-y-4 rounded-card bg-surface-subtle p-6 motion-safe:animate-pulse">
       <div className="h-5 w-40 rounded-control bg-surface-canvas" /><div className="h-8 w-3/4 rounded-control bg-surface-canvas" /><div className="h-12 rounded-control bg-surface-canvas" />
     </div>)}
@@ -61,7 +61,7 @@ export default function ReplayLibrary({ state, error, retry, retrying, items, to
     </section>
     {state === 'loading' ? <LibrarySkeleton />
       : state === 'error' && error ? <ReplayErrorNotice error={error} titles={{ unsupported: '지난 뉴스 검색이 아직 준비되지 않았어요', notFound: '선택한 시장 대상을 찾을 수 없어요', other: '지난 뉴스를 불러오지 못했어요' }} retry={retry} busy={retrying}>{filtered && <Button variant="text" onClick={reset}>필터 초기화</Button>}</ReplayErrorNotice>
-      : items.length ? <div className="grid grid-cols-2 gap-x-12 gap-y-6">{items.map(item => <ReplayScenarioCard key={item.id} news={item} search={search} />)}</div>
+      : items.length ? <div className="grid grid-cols-1 gap-x-12 gap-y-6 md:grid-cols-2">{items.map(item => <ReplayScenarioCard key={item.id} news={item} search={search} />)}</div>
       : filtered ? <Notice title="조건에 맞는 지난 뉴스가 없어요">다른 분야·기간·대상을 선택하거나 필터를 초기화해 주세요.<Button variant="text" onClick={reset}>모든 지난 뉴스 보기</Button></Notice>
       : <Notice title="아직 지난 뉴스가 없어요">학습할 수 있는 지난 뉴스가 준비되면 이곳에서 확인할 수 있어요.</Notice>}
     {state === 'ready' && moreError && <Notice title="추가 뉴스를 불러오지 못했어요" error>표시된 뉴스는 그대로 유지했어요.</Notice>}

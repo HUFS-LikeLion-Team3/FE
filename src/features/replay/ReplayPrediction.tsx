@@ -54,7 +54,7 @@ export default function ReplayPrediction({ scenario }: { scenario: ReplayScenari
   return <Shell section="/explore"><PageTitle label="REPLAY / PREDICTION" title="결과를 보기 전, 내 생각부터 남기다" description={`${scenario.title} · ${target.name} · 과거 기준 시점의 정보로 판단해 주세요.`} />
     <Notice title="당시 뉴스만 보고 생각해 보세요" className="bg-brand-subtle">실제 과거 결과와 그래프는 아직 공개하지 않아요. 대상별 방향을 모두 고르고 전체에서 이유 하나 이상을 남겨 주세요.</Notice>
     <fieldset disabled={busy} className="min-w-0"><legend className="sr-only">예측 작성 대상</legend><TargetSwitcher targets={targets} active={target.id} onChange={setActive} /></fieldset>
-    <div className="grid grid-cols-[minmax(0,5fr)_minmax(0,3fr)] items-start gap-12">
+    <div className="grid grid-cols-1 items-start gap-8 lg:grid-cols-[minmax(0,5fr)_minmax(0,3fr)] lg:gap-12">
       <fieldset disabled={busy} className="min-w-0 space-y-8"><legend className="sr-only">{target.name}의 기간별 예측</legend>{horizons.map(horizon => <section key={horizon} className="space-y-4"><h2 className="text-section">{horizon}거래일 · 방향 필수</h2>
         <div className="flex gap-2" role="group" aria-label={`${horizon}거래일 방향`}>{(['up', 'down', 'neutral'] as const).map(direction => <FilterChip key={direction} className="min-w-[180px]" selected={draft[target.id][horizon].direction === direction} onClick={() => change(horizon, { direction })}>{directionLabel(target, direction)}</FilterChip>)}</div>
         <TextArea label={`${horizon}거래일 판단 이유 · 개별 선택`} rows={4} maxLength={3000} className="min-h-32 border-border-default" value={draft[target.id][horizon].reason} onChange={event => change(horizon, { reason: event.target.value })} helperText="세 기간 중 판단 이유를 하나 이상 남겨 주세요." placeholder="당시 뉴스에서 어떤 사실과 이유를 연결했는지 적어보세요." />
