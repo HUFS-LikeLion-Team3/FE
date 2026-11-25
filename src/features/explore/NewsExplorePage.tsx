@@ -23,7 +23,10 @@ export default function NewsExplorePage() {
   const topic: Topic = topics.find(option => option.key === params.get('category'))?.key ?? 'all'
   const highlights = useQuery({ queryKey: ['news', 'explore', 'highlights'], queryFn: ({ signal }) => getExploreNews({ sort: 'recommended', size: 3 }, signal), retry: false, staleTime: 60_000 })
   const recent = useInfiniteQuery({ queryKey: recentNewsKey(market, topic), initialPageParam: 0, queryFn: ({ signal, pageParam }) => getExploreNews({ market, topic, page: pageParam }, signal), getNextPageParam: last => last.hasNext ? last.page + 1 : undefined, retry: false, staleTime: 60_000 })
-  const news = [...new Map(recent.data?.pages.flatMap(page => page.content).map(item => [item.id, item]) ?? []).values()]
+  const highlightedNews = highlights.data?.content ?? []
+  const highlightedIds = new Set(highlightedNews.map(item => item.id))
+  const recentItems = recent.data?.pages.flatMap(page => page.content) ?? []
+  const news = [...new Map(recentItems.filter(item => !highlightedIds.has(item.id)).map(item => [item.id, item])).values()]
   const changeFilters = (nextMarket: Market, nextTopic: Topic) => {
     if (nextMarket === market && nextTopic === topic) return
     client.removeQueries({ queryKey: recentNewsKey(nextMarket, nextTopic), exact: true })
@@ -40,13 +43,18 @@ export default function NewsExplorePage() {
     <section aria-labelledby="highlight-news-title" className="space-y-8"><h2 id="highlight-news-title" className="text-section">추천 핵심 뉴스</h2>
       {!highlights.data ? highlights.isPending ? <LoadingRows label="뉴스를 불러오는 중" /> : <NewsError error={highlights.error!} busy={highlights.isFetching} retry={() => void highlights.refetch()} /> : <>
         {highlights.isError && <NewsError error={highlights.error} busy={highlights.isFetching} retry={() => void highlights.refetch()} />}
-        {highlights.data.content.length ? <ul className="space-y-8">{highlights.data.content.map(item => <NewsRow key={item.id} news={item} />)}</ul> : <Notice title="핵심 뉴스가 아직 없어요">새로운 뉴스가 준비되면 이곳에서 확인할 수 있어요.</Notice>}
+        {highlightedNews.length ? <ul className="space-y-8">{highlightedNews.map(item => <NewsRow key={item.id} news={item} />)}</ul> : <Notice title="핵심 뉴스가 아직 없어요">새로운 뉴스가 준비되면 이곳에서 확인할 수 있어요.</Notice>}
       </>}
     </section>
     <section aria-labelledby="recent-news-title" className="space-y-8"><h2 id="recent-news-title" className="text-section">최근 경제 뉴스</h2>
       <fieldset className="space-y-8"><legend className="sr-only">뉴스 필터</legend><div className="space-y-8" role="group" aria-label="시장"><p className="text-control font-medium">시장</p><div className="flex gap-2">{markets.map(option => <FilterChip key={option.key} className={market === option.key ? 'min-w-[84px] [&>span:first-child]:w-auto' : 'min-w-20'} selected={market === option.key} onClick={() => changeFilters(option.key, topic)}>{option.label}</FilterChip>)}</div></div><div className="space-y-8" role="group" aria-label="주제"><p className="text-control font-medium">주제</p><div className="flex flex-wrap gap-2">{topics.map(option => <FilterChip key={option.key} className={topic === option.key ? 'min-w-[84px] [&>span:first-child]:w-auto' : option.label.length > 2 ? 'min-w-[85px]' : 'min-w-20'} selected={topic === option.key} onClick={() => changeFilters(market, option.key)}>{option.label}</FilterChip>)}</div></div></fieldset>
       {!recent.data ? recent.isPending ? <LoadingRows label="뉴스를 불러오는 중" /> : <NewsError error={recent.error!} busy={recent.isFetching} retry={() => void recent.refetch()} /> : <>
-        {news.length ? <ul className="space-y-8">{news.map(item => <NewsRow key={item.id} news={item} />)}</ul> : <Notice title={market !== 'all' || topic !== 'all' ? '조건에 맞는 뉴스가 없어요' : '최근 뉴스가 아직 없어요'}>다른 시장이나 주제를 선택하거나 잠시 후 다시 확인해 주세요.{market !== 'all' || topic !== 'all' ? <Button variant="text" onClick={() => changeFilters('all', 'all')}>필터 초기화</Button> : <Button variant="text" loading={recent.isFetching} onClick={() => void recent.refetch()}>새로 불러오기</Button>}</Notice>}
+        {news.length > 0 && <ul className="space-y-8">{news.map(item => <NewsRow key={item.id} news={item} />)}</ul>}
+        {!news.length && !recent.isError && (recentItems.length ? (
+          <Notice title="추천 핵심 뉴스에서 이미 볼 수 있어요">
+            {recent.hasNextPage ? '뉴스 더 보기에서 다음 목록을 확인해 주세요.' : '현재 조건의 최근 뉴스는 모두 위에 표시돼 있어요.'}
+          </Notice>
+        ) : <Notice title={market !== 'all' || topic !== 'all' ? '조건에 맞는 뉴스가 없어요' : '최근 뉴스가 아직 없어요'}>다른 시장이나 주제를 선택하거나 잠시 후 다시 확인해 주세요.{market !== 'all' || topic !== 'all' ? <Button variant="text" onClick={() => changeFilters('all', 'all')}>필터 초기화</Button> : <Button variant="text" loading={recent.isFetching} onClick={() => void recent.refetch()}>새로 불러오기</Button>}</Notice>)}
         {recent.isError && <NewsError error={recent.error} busy={recent.isFetching} retry={() => { if (recent.isFetchNextPageError) void recent.fetchNextPage(); else void recent.refetch() }} />}
         {(recent.hasNextPage || recent.isFetchNextPageError) && <Button className="w-full" variant="secondary" loading={recent.isFetching} onClick={() => void recent.fetchNextPage()}>{recent.isFetchNextPageError ? '추가 뉴스 다시 불러오기' : '뉴스 더 보기'}</Button>}
       </>}
