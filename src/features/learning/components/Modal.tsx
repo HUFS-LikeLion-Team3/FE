@@ -17,7 +17,7 @@ export function Modal({ title, children, onClose }: { title: string; children: R
     if (!first) { event.preventDefault(); return }
     if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus() }
     else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus() }
-  }} className="fixed inset-0 m-auto max-h-[90vh] w-[720px] max-w-[calc(100vw-48px)] overflow-y-auto rounded-card border border-border-default bg-surface-canvas p-8 text-text-primary backdrop:bg-overlay-scrim">
+  }} className="fixed inset-0 m-auto max-h-[90vh] w-[720px] max-w-[calc(100vw-48px)] overflow-y-auto rounded-card border border-border-default bg-surface-canvas p-5 text-text-primary sm:p-8 backdrop:bg-overlay-scrim">
     <h2 id={titleId} className="mb-6 text-page">{title}</h2>
     <div className="space-y-6">{children}</div>
   </dialog>
