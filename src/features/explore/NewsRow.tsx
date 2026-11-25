@@ -4,8 +4,11 @@ import { Button } from '@/components/ui/Button'
 import { learningApi } from '@/features/learning/api/service'
 import { formatTime } from '@/features/learning/api/page-data'
 import { topics, type ExploreNews } from './api'
+import { NewsSessionBadge } from '@/features/home/NewsSessionBadge'
+import { newsSessionLink, type LiveSessionIndex } from '@/features/home/news-session'
 
-export function NewsRow({ news }: { news: ExploreNews }) {
+export function NewsRow({ news, sessionIndex }: { news: ExploreNews; sessionIndex: LiveSessionIndex | undefined }) {
+  const link = newsSessionLink(news.id, sessionIndex)
   const sources = useQuery({ queryKey: ['news', 'sources', news.id], queryFn: ({ signal }) => learningApi.sources(news.id, signal), retry: false, staleTime: 300_000 })
   const candidates = useQuery({ queryKey: ['news', 'candidates', news.id], queryFn: ({ signal }) => learningApi.candidates(news.id, signal), retry: false, staleTime: 300_000 })
   const categories = new Set(candidates.data?.candidates.map(candidate => candidate.marketCategory))
@@ -13,8 +16,9 @@ export function NewsRow({ news }: { news: ExploreNews }) {
   const topic = topics.find(topic => topic.key === news.category)?.label ?? news.category
   const publisher = sources.data?.sources.find(source => source.isPrimary)?.publisher ?? (sources.isPending ? '출처 확인 중' : '발행처 정보 없음')
   return <li>
-    <Link to={`/news/${news.id}`} className="flex flex-col gap-3 border-b border-border-default pb-3 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-brand-primary">
+    <Link to={link.href} className="flex flex-col gap-3 border-b border-border-default pb-3 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-brand-primary">
       <p className="text-meta text-text-muted">{market && `${market} · `}{topic} / {publisher} · {formatTime(news.publishedAt)}</p>
+      <NewsSessionBadge link={link} />
       <h3 className="text-news-title">{news.title}</h3>
       <p className="text-ui text-text-secondary">{news.briefing}</p>
     </Link>
