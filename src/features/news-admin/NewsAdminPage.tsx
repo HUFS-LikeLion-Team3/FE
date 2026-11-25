@@ -7,7 +7,8 @@ import { TextArea, TextField } from '@/components/ui/TextField'
 import { topics } from '@/features/explore/api'
 import { Notice, Shell, linkClass } from '@/features/learning/components/PagePrimitives'
 import { ApiError, request } from '@/lib/api-client'
-import { newsAdminAccessQuery } from './api'
+import { adminNewsKey, newsAdminAccessQuery } from './api'
+import NewsAdminList from './NewsAdminList'
 
 const categories = topics.filter(topic => topic.key !== 'all')
 const sourceTypes = [
@@ -32,28 +33,53 @@ const selectClass = 'min-h-12 w-full rounded-control border border-border-contro
 
 export default function NewsAdminPage() {
   const access = useQuery(newsAdminAccessQuery)
-  const markets = useQuery({
-    queryKey: ['news-admin', 'markets'],
-    queryFn: ({ signal }) => request('/market-targets', marketsSchema, { signal }),
-    enabled: Boolean(access.data),
-    retry: false,
-  })
-  const error = access.error ?? markets.error
-  const forbidden = error instanceof ApiError && error.status === 403
-
   return (
     <Shell responsive>
-      <h1 className="text-page">학습 뉴스 등록</h1>
-      {error ? (
-        <Notice title={forbidden ? '뉴스 관리자 권한이 필요해요' : '등록 화면을 불러오지 못했어요'} error>
-          {!forbidden && <><p>{error.message}</p><Button variant="secondary" className="mt-3" onClick={() => void (access.error ? access.refetch() : markets.refetch())}>다시 불러오기</Button></>}
+      <h1 className="text-page">학습 뉴스 관리</h1>
+      {access.isError ? (
+        <Notice title={access.error instanceof ApiError && access.error.status === 403 ? '뉴스 관리자 권한이 필요해요' : '관리 화면을 불러오지 못했어요'} error>
+          <p>{access.error.message}</p>
+          <Button variant="secondary" className="mt-3" onClick={() => void access.refetch()}>다시 불러오기</Button>
         </Notice>
-      ) : markets.data ? <NewsForm markets={markets.data.targets} /> : <p role="status">등록 화면을 준비하고 있어요.</p>}
+      ) : access.data ? <NewsAdminWorkspace /> : <p role="status">관리 화면을 준비하고 있어요.</p>}
     </Shell>
   )
 }
 
-function NewsForm({ markets }: { markets: Market[] }) {
+function NewsAdminWorkspace() {
+  const [view, setView] = useState<'list' | 'register'>('list')
+  const [registrationOpened, setRegistrationOpened] = useState(false)
+
+  return <>
+    <nav className="flex gap-2" aria-label="학습 뉴스 관리">
+      <Button variant={view === 'list' ? 'primary' : 'secondary'} aria-pressed={view === 'list'} onClick={() => setView('list')}>기사 목록</Button>
+      <Button variant={view === 'register' ? 'primary' : 'secondary'} aria-pressed={view === 'register'} onClick={() => {
+        setRegistrationOpened(true)
+        setView('register')
+      }}>기사 등록</Button>
+    </nav>
+    {view === 'list' && <NewsAdminList />}
+    {registrationOpened && <div hidden={view !== 'register'}>
+      <NewsAdminRegistration onViewList={() => { setRegistrationOpened(false); setView('list') }} />
+    </div>}
+  </>
+}
+
+function NewsAdminRegistration({ onViewList }: { onViewList: () => void }) {
+  const markets = useQuery({
+    queryKey: ['news-admin', 'markets'],
+    queryFn: ({ signal }) => request('/market-targets', marketsSchema, { signal }),
+    retry: false,
+  })
+  if (markets.isError) return <Notice title="등록 화면을 불러오지 못했어요" error>
+    <p>{markets.error.message}</p>
+    <Button variant="secondary" className="mt-3" onClick={() => void markets.refetch()}>다시 불러오기</Button>
+  </Notice>
+  if (!markets.data) return <p role="status">등록 화면을 준비하고 있어요.</p>
+  return <NewsForm markets={markets.data.targets} onViewList={onViewList} />
+}
+
+function NewsForm({ markets, onViewList }: { markets: Market[]; onViewList: () => void }) {
   const client = useQueryClient()
   const [title, setTitle] = useState('')
   const [category, setCategory] = useState('')
@@ -130,6 +156,7 @@ function NewsForm({ markets }: { markets: Market[] }) {
       })
       setPublished(registered)
       void client.invalidateQueries({ queryKey: ['news'] })
+      void client.invalidateQueries({ queryKey: adminNewsKey })
     } catch (cause) {
       setError(cause instanceof ApiError && cause.status === 409
         ? '이미 등록된 원문이거나 등록 정보가 충돌해요. 입력 내용을 확인해 주세요.'
@@ -144,6 +171,7 @@ function NewsForm({ markets }: { markets: Market[] }) {
     <Notice title="뉴스를 등록했어요">
       <p>{published.title}</p>
       <Link to={`/news/${published.id}`} className={linkClass}>등록한 뉴스 보기</Link>
+      <Button variant="secondary" onClick={onViewList}>기사 목록으로</Button>
     </Notice>
   )
 
