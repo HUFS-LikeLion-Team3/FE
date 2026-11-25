@@ -190,9 +190,16 @@ export default function HomePage() {
               <p className="font-sans text-[13px] text-text-muted">
                 <NewsPublisher newsId={featuredNews.id} /> · {new Date(featuredNews.publishedAt).toLocaleDateString('ko-KR')}
               </p>
-              <Link to={featuredLink?.href ?? `/news/${featuredNews.id}`} className={primaryLinkClass}>
-                {featuredLink?.action ?? '뉴스 보기'}
-              </Link>
+              {sessionIndex.isPending ? (
+                // 학습 상태 확인 전에는 버튼 문구가 바뀌며 깜빡이지 않도록 자리만 둔다.
+                <LoadingSkeleton label="학습 상태를 확인하는 중">
+                  <SkeletonBlock className="h-12 w-full" />
+                </LoadingSkeleton>
+              ) : (
+                <Link to={featuredLink?.href ?? `/news/${featuredNews.id}`} className={primaryLinkClass}>
+                  {featuredLink?.action ?? '뉴스 보기'}
+                </Link>
+              )}
             </>
           ) : (
             // 빈 목록 (오류 아님)
