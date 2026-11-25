@@ -173,11 +173,13 @@ export default function HomePage() {
             </div>
           ) : featuredNews ? (
             <>
-              <div className="space-y-1">
-                {featuredLink && <NewsSessionBadge link={featuredLink} />}
-                <p className="font-sans text-[12px] font-semibold text-brand-primary">
-                  오늘의 대표 뉴스 / {categoryLabel(featuredNews.category)}
-                </p>
+              <div className="space-y-2">
+                <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+                  <p className="font-sans text-[12px] font-semibold text-brand-primary">
+                    오늘의 대표 뉴스 / {categoryLabel(featuredNews.category)}
+                  </p>
+                  {featuredLink && <NewsSessionBadge link={featuredLink} />}
+                </div>
                 <h2 className="text-page text-text-primary leading-snug">
                   {featuredNews.title}
                 </h2>
