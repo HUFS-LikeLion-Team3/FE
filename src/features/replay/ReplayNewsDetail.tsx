@@ -1,3 +1,4 @@
+import { parseBriefing } from '@/features/news/briefing'
 import { useId, useState, type ReactNode } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { Button } from '@/components/ui/Button'
@@ -25,7 +26,7 @@ export default function ReplayNewsDetail({ news, fixtures, start }: { news: Repl
     <Link to={`/replay${search}`} className={linkClass}>← 지난 뉴스 목록으로</Link>
     <div className="grid grid-cols-1 items-start gap-8 lg:grid-cols-8 lg:gap-12">
       <section className="min-w-0 space-y-6 lg:col-span-5"><h2 className="text-section">발표 당시의 사실부터 읽어보세요</h2><p className="text-ui text-text-secondary">발표 당시 확인할 수 있었던 사실을 읽고, 이후의 시장 변화는 스스로 예측해 보세요.</p>
-        <section className="space-y-6"><h3 className="text-control font-medium text-brand-primary">발표 내용</h3><p className="whitespace-pre-line text-ui text-text-secondary">{news.briefing}</p></section>
+        {parseBriefing(news.briefing, '발표 내용').map((item, i) => <section key={i} className="space-y-3"><h3 className="text-control font-medium text-brand-primary">{item.title}</h3><p className="whitespace-pre-line break-words text-ui text-text-secondary">{item.body}</p></section>)}
         <Notice title="자료의 기준 시점">브리핑과 최초 피드백은 당시 학습 기준 시점까지 공개된 자료만 사용해요. 과거 결과는 예측과 피드백을 확인한 뒤 열어볼 수 있어요.</Notice>
         <Button variant="secondary" className="w-full" onClick={() => setSourceOpen(true)}>뉴스 원문 안내</Button>
       </section>

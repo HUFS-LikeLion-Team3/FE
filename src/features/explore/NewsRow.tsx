@@ -1,3 +1,4 @@
+import { briefingSummary } from '@/features/news/briefing'
 import { useQuery } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
 import { Button } from '@/components/ui/Button'
@@ -22,7 +23,7 @@ export function NewsRow({ news, sessionIndex }: { news: ExploreNews; sessionInde
       <p className="text-meta text-text-muted">{market && `${market} · `}{topic} / {publisher} · {formatTime(news.publishedAt)}</p>
       <NewsSessionBadge link={link} />
       <h3 className="text-news-title">{news.title}</h3>
-      <p className="text-ui text-text-secondary">{news.briefing}</p>
+      <p className="line-clamp-3 text-ui text-text-secondary">{briefingSummary(news.briefing)}</p>
     </Link>
     {(sources.isError || candidates.isError) && <Button variant="text" onClick={() => { if (sources.isError) void sources.refetch(); if (candidates.isError) void candidates.refetch() }}>출처·시장 정보 다시 불러오기</Button>}
   </li>
