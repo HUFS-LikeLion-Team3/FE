@@ -54,7 +54,7 @@ export default function LivePatterns() {
   const periods = useQuery({ queryKey: ['patterns', 'horizons', category], queryFn: ({ signal }) => getPatternHorizons(category, signal), retry: false })
   const setParam = (key: string, value?: string) => {
     setEvidence(null)
-    setParams(previous => { const next = new URLSearchParams(previous); if (value) next.set(key, value); else next.delete(key); return next })
+    setParams(previous => { const next = new URLSearchParams(previous); if (value) next.set(key, value); else next.delete(key); return next }, { preventScrollReset: true })
   }
   return <Shell section="/learning"><div className="space-y-6">
     <PatternHeading title={kind === 'reasoning' ? '기록에서, 반복되는 생각을 발견하다' : '예상과 관찰을, 나란히 살펴보다'} description="정답이나 점수 대신 내가 쌓아온 판단의 흐름을 돌아보세요." />

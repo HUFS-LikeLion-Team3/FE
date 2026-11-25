@@ -15,7 +15,7 @@ export type ReplayPreviewState = 'loading' | 'error' | 'empty'
 
 function useClearPreviewState() {
   const [, setParams] = useSearchParams()
-  return () => setParams(previous => { const next = new URLSearchParams(previous); next.delete('state'); return next })
+  return () => setParams(previous => { const next = new URLSearchParams(previous); next.delete('state'); return next }, { preventScrollReset: true })
 }
 
 /** 지난 뉴스 목록: 필터는 URL에서 읽어 서버 검색 파라미터로 보내고, 더 보기로 다음 페이지를 이어 붙인다. */

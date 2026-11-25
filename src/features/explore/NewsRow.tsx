@@ -5,6 +5,7 @@ import { learningApi } from '@/features/learning/api/service'
 import { formatTime } from '@/features/learning/api/page-data'
 import { topics, type ExploreNews } from './api'
 import { NewsSessionBadge } from '@/features/home/NewsSessionBadge'
+import { PublisherSkeleton } from '@/features/home/NewsPublisher'
 import { newsSessionLink, type LiveSessionIndex } from '@/features/home/news-session'
 
 export function NewsRow({ news, sessionIndex }: { news: ExploreNews; sessionIndex: LiveSessionIndex | undefined }) {
@@ -14,7 +15,8 @@ export function NewsRow({ news, sessionIndex }: { news: ExploreNews; sessionInde
   const categories = new Set(candidates.data?.candidates.map(candidate => candidate.marketCategory))
   const market = [categories.has('korea_equity') ? '국내' : '', categories.has('us_equity') ? '미국' : ''].filter(Boolean).join('·')
   const topic = topics.find(topic => topic.key === news.category)?.label ?? news.category
-  const publisher = sources.data?.sources.find(source => source.isPrimary)?.publisher ?? (sources.isPending ? '출처 확인 중' : '발행처 정보 없음')
+  const primaryPublisher = sources.data?.sources.find(source => source.isPrimary)?.publisher
+  const publisher = primaryPublisher ?? (sources.isPending ? <PublisherSkeleton /> : '발행처 정보 없음')
   return <li>
     <Link to={link.href} className="flex flex-col gap-3 border-b border-border-default pb-3 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-brand-primary">
       <p className="text-meta text-text-muted">{market && `${market} · `}{topic} / {publisher} · {formatTime(news.publishedAt)}</p>
