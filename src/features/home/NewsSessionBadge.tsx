@@ -4,7 +4,7 @@ import type { NewsSessionLink } from './news-session'
 
 export function NewsSessionBadge({ link }: { link: NewsSessionLink }) {
   if (!link.badge) return null
-  return <span className={`inline-flex w-fit items-center rounded-pill px-2.5 py-1 font-sans text-[12px] font-semibold ${link.kind === 'completed' ? 'bg-surface-subtle text-text-secondary' : 'bg-brand-subtle text-brand-primary'}`}>{link.badge}</span>
+  return <span className={`inline-flex w-fit items-center rounded-pill px-2.5 py-1 font-sans text-[12px] font-semibold ${link.kind === 'completed' ? 'bg-feedback-connected text-feedback-connected-text' : 'bg-brand-subtle text-brand-primary'}`}>{link.badge}</span>
 }
 
 /** 세션 상태 조회 실패 안내. 실패를 '세션 없음'으로 간주하지 않았다는 점과 재시도를 함께 보여준다. 401은 페이지의 로그인 안내에 맡긴다. */
