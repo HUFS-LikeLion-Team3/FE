@@ -87,7 +87,8 @@ export default function PredictionPage({ news, newsHref, feedbackHref, session, 
         {expanded !== t.id && <p className="mt-2 text-meta text-text-secondary">{horizons.map(h => `${h}일 ${directionLabel(t, session.draft[t.id][h].direction)}`).join(' / ')}</p>}
       </section>)}
       <Notice title="확정 후에는 수정할 수 없어요.">예측 대상·방향·이유는 확정한 상태로 보존됩니다.</Notice>{actionError && <Notice title="제출 실패" error>{actionError}</Notice>}
-      <Button className="w-full" loading={busy === 'submit'} onClick={() => void submit()}>예측 확정하기</Button><Button variant="secondary" className="w-full" disabled={!!busy} onClick={closeReview}>계속 수정하기</Button>
+      {busy === 'submit' && <p role="status" className="text-meta text-text-secondary">제출이 완료되면 최초 AI 피드백 상태를 보여드려요.</p>}
+      <Button className="w-full" loading={busy === 'submit'} loadingLabel="예측 제출 중…" onClick={() => void submit()}>예측 확정하기</Button><Button variant="secondary" className="w-full" disabled={!!busy} onClick={closeReview}>계속 수정하기</Button>
     </Modal>}
     {blocker.state === 'blocked' && <Modal title="저장하지 않은 변경이 있어요" onClose={() => { if (!busy) { blocker.reset(); setActionError(null) } }}><p className="text-ui text-text-secondary">마지막 저장 이후 바꾼 내용은 나가면 사라집니다. 한 번도 저장하지 않았다면 현재 입력 전체가 사라집니다.</p>{actionError && <Notice title="저장 실패" error>{actionError}</Notice>}<Button className="w-full" disabled={!!busy} onClick={() => { blocker.reset(); setActionError(null) }}>계속 작성하기</Button><Button variant="secondary" className="w-full" loading={busy === 'save'} onClick={() => void save(true)}>임시 저장하고 나가기</Button><Button variant="text" className="w-full" disabled={!!busy} onClick={() => { session.discard(); blocker.proceed() }}>저장하지 않고 나가기</Button></Modal>}
   </Shell>

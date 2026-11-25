@@ -11,6 +11,22 @@ export type Source = { id: string; title: string; publisher: string; date: strin
 export type FeedbackItem = { type?: string; title: string; body: string; sources: Source[] }
 export type FeedbackState = 'ready' | 'loading' | 'transient-error' | 'validation-error' | 'limited' | 'unavailable' | 'pending' | 'generating' | 'failed'
 
+const feedbackPreparationFailures = new Set([
+  'initial_input_freeze_failed',
+  'final_input_freeze_failed',
+  'final_cutoff_freeze_failed',
+  'original_initial_snapshot_missing',
+  'original_frozen_input_missing',
+  'frozen_input_invalid',
+  'frozen_request_serialization_failed',
+  'frozen_request_empty',
+  'ai_rag_package_not_configured',
+])
+
+export function isFeedbackPreparationFailure(code: string | null | undefined) {
+  return feedbackPreparationFailures.has(code ?? '')
+}
+
 export function directionLabel(target: Target, direction: Direction | null) {
   if (!direction) return '아직 선택하지 않았어요'
   if (target.directionLabels) return target.directionLabels[direction]
