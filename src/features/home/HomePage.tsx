@@ -1,3 +1,4 @@
+import { briefingSummary } from '@/features/news/briefing'
 import { LoadingRows, LoadingSkeleton, SkeletonBlock } from '@/components/ui/LoadingSkeleton'
 import { sessionDestination } from '@/features/learning/session-routes'
 import { useQuery } from '@tanstack/react-query'
@@ -79,7 +80,7 @@ function NewsListItem({ news, sessionIndex }: { news: NewsItem; sessionIndex: Li
           {news.title}
         </h3>
         <p className="font-sans text-[14px] text-text-secondary leading-relaxed line-clamp-2">
-          {news.briefing}
+          {briefingSummary(news.briefing)}
         </p>
       </Link>
     </li>
@@ -184,8 +185,8 @@ export default function HomePage() {
                   {featuredNews.title}
                 </h2>
               </div>
-              <p className="font-sans text-[15px] text-text-secondary leading-relaxed">
-                {featuredNews.briefing}
+              <p className="font-sans text-[15px] text-text-secondary leading-relaxed line-clamp-4">
+                {briefingSummary(featuredNews.briefing)}
               </p>
               <p className="font-sans text-[13px] text-text-muted">
                 <NewsPublisher newsId={featuredNews.id} /> · {new Date(featuredNews.publishedAt).toLocaleDateString('ko-KR')}

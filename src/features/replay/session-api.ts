@@ -1,3 +1,4 @@
+import { parseBriefing } from '@/features/news/briefing'
 import { z } from 'zod'
 import { ApiError } from '@/lib/api-client'
 import type { LearningNews } from '../learning/learning-note-data'
@@ -60,7 +61,7 @@ export async function loadReplayEditor(newsId: string, signal?: AbortSignal): Pr
     session, targets, draft, ...feedbackDefaults,
     news: {
       id: news.id, title: news.title, category: news.category, publisher: '', publishedAt: formatTime(news.referenceAt),
-      originalUrl: null, originalLabel: '', briefing: [{ title: '발표 내용', body: news.briefing }],
+      originalUrl: null, originalLabel: '', briefing: parseBriefing(news.briefing, '발표 내용'),
       context: null, term: null, facts: [], sources: [],
       targets: candidates,
     },
