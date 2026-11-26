@@ -38,3 +38,21 @@ export const getPatternReasons = (signal?: AbortSignal) => request(`${base}/reas
 export const getPatternSuggestions = (signal?: AbortSignal) => request(`${base}/suggestions`, suggestions, { signal })
 export type DirectionCounts = z.infer<typeof directionCounts>
 export type VariablePattern = z.infer<typeof variable>
+
+const decimal = z.number().nullable()
+const outcomeCase = z.object({
+  sessionId: z.string(), newsId: z.string(), newsTitle: z.string(),
+  targetCode: z.string(), targetName: z.string(), unit: z.string(),
+  direction: z.enum(['up', 'down', 'neutral']), reason: z.string().nullable(),
+  baselineDate: z.string().nullable(), baselineValue: decimal,
+  observationDate: z.string().nullable(), observedValue: decimal,
+  changeValue: decimal, changePercent: decimal, reflection: z.string().nullable(),
+})
+const outcomes = z.object({
+  market: z.string(), horizon: z.union([z.literal(1), z.literal(5), z.literal(20)]), distinctNewsCount: count,
+  minimumNewsCount: count, repeatedNewsCount: count,
+  stage: z.enum(['insufficient', 'initial_observation', 'repeated_tendency']), cases: z.array(outcomeCase),
+})
+export const getPatternOutcomes = (market: string, horizon: number, signal?: AbortSignal) =>
+  request(`${base}/outcomes?${new URLSearchParams({ market, horizon: String(horizon) })}`, outcomes, { signal })
+export type OutcomeCase = z.infer<typeof outcomeCase>
