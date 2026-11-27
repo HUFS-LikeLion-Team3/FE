@@ -13,7 +13,7 @@ export const revealSchema = z.object({ sessionId: id, resultsRevealedAt: timesta
 export const sessionsSchema = z.object({ content: z.array(sessionSchema) })
 export const newsSchema = z.object({ id, title: z.string(), category: z.string(), briefing: z.string(), backgroundContext: z.string().nullable().optional(), publishedAt: timestamp, contentType: z.string().optional() })
 export const factsSchema = z.object({ facts: z.array(z.object({ id, label: z.string(), valueText: z.string(), unit: z.string().nullable(), asOfAt: timestamp.nullable(), sortOrder: z.number() })) })
-export const sourcesSchema = z.object({ sources: z.array(z.object({ id, title: z.string(), publisher: z.string(), url: httpUrl, publishedAt: timestamp, isPrimary: z.boolean() })) })
+export const sourcesSchema = z.object({ sources: z.array(z.object({ id, title: z.string(), publisher: z.string(), url: httpUrl, publishedAt: timestamp, isPrimary: z.boolean(), publicSummary: z.string().nullish() })) })
 export const marketSchema = z.object({
   id, displayName: z.string(), marketCategory: z.string(), targetType: z.string(), unit: z.string(),
   directionLabels: z.object({ up: z.string(), down: z.string(), neutral: z.string() }),

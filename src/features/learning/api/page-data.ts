@@ -29,7 +29,7 @@ export async function loadNews(newsId: string, signal?: AbortSignal, newsData?: 
     originalUrl: primary?.url ?? null, originalLabel: '대표 출처 보기 ↗',
     briefing: parseBriefing(news.briefing), context: news.backgroundContext?.trim() || null, term: null,
     facts: [...facts.facts].sort((a, b) => a.sortOrder - b.sortOrder).map(f => ({ id: f.id, label: f.label, value: f.valueText, unit: f.unit ?? '', asOf: f.asOfAt ? formatTime(f.asOfAt) : null })),
-    sources: sources.sources.map(s => ({ id: s.id, title: s.title, publisher: s.publisher, date: formatTime(s.publishedAt), quote: '', url: s.url })),
+    sources: sources.sources.map(s => ({ id: s.id, title: s.title, publisher: s.publisher, date: formatTime(s.publishedAt), quote: '', summary: s.publicSummary?.trim(), url: s.url })),
     targets: [...candidates.candidates].sort((a, b) => a.sortOrder - b.sortOrder).map(c => ({ ...toTarget({ ...c, id: c.marketTargetId }), rationale: c.rationale })),
   }
 }

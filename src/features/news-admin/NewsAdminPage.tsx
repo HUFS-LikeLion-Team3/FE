@@ -7,7 +7,8 @@ import { TextArea, TextField } from '@/components/ui/TextField'
 import { topics } from '@/features/explore/api'
 import { Notice, Shell, linkClass } from '@/features/learning/components/PagePrimitives'
 import { ApiError, request } from '@/lib/api-client'
-import { newsAdminAccessQuery } from './api'
+import { adminNewsKey, newsAdminAccessQuery } from './api'
+import NewsAdminList from './NewsAdminList'
 
 const categories = topics.filter(topic => topic.key !== 'all')
 const sourceTypes = [
@@ -23,6 +24,8 @@ const marketsSchema = z.object({
 const publishedSchema = z.object({ id: z.uuid(), title: z.string() })
 type Market = z.infer<typeof marketsSchema>['targets'][number]
 type Published = z.infer<typeof publishedSchema>
+type FactInput = { id: string; label: string; valueText: string; unit: string; asOfAt: string }
+const maxFacts = 10
 const marketCategories: Record<string, string> = {
   korea_equity: '국내 주식', us_equity: '미국 주식', sector: '섹터', fx: '환율', rate: '금리', commodity: '원자재',
 }
@@ -30,32 +33,60 @@ const selectClass = 'min-h-12 w-full rounded-control border border-border-contro
 
 export default function NewsAdminPage() {
   const access = useQuery(newsAdminAccessQuery)
-  const markets = useQuery({
-    queryKey: ['news-admin', 'markets'],
-    queryFn: ({ signal }) => request('/market-targets', marketsSchema, { signal }),
-    enabled: Boolean(access.data),
-    retry: false,
-  })
-  const error = access.error ?? markets.error
-  const forbidden = error instanceof ApiError && error.status === 403
-
   return (
     <Shell responsive>
-      <h1 className="text-page">학습 뉴스 등록</h1>
-      {error ? (
-        <Notice title={forbidden ? '뉴스 관리자 권한이 필요해요' : '등록 화면을 불러오지 못했어요'} error>
-          {!forbidden && <><p>{error.message}</p><Button variant="secondary" className="mt-3" onClick={() => void (access.error ? access.refetch() : markets.refetch())}>다시 불러오기</Button></>}
+      <h1 className="text-page">학습 뉴스 관리</h1>
+      {access.isError ? (
+        <Notice title={access.error instanceof ApiError && access.error.status === 403 ? '뉴스 관리자 권한이 필요해요' : '관리 화면을 불러오지 못했어요'} error>
+          <p>{access.error.message}</p>
+          <Button variant="secondary" className="mt-3" onClick={() => void access.refetch()}>다시 불러오기</Button>
         </Notice>
-      ) : markets.data ? <NewsForm markets={markets.data.targets} /> : <p role="status">등록 화면을 준비하고 있어요.</p>}
+      ) : access.data ? <NewsAdminWorkspace /> : <p role="status">관리 화면을 준비하고 있어요.</p>}
     </Shell>
   )
 }
 
-function NewsForm({ markets }: { markets: Market[] }) {
+function NewsAdminWorkspace() {
+  const [view, setView] = useState<'list' | 'register'>('list')
+  const [registrationOpened, setRegistrationOpened] = useState(false)
+
+  return <>
+    <nav className="flex gap-2" aria-label="학습 뉴스 관리">
+      <Button variant={view === 'list' ? 'primary' : 'secondary'} aria-pressed={view === 'list'} onClick={() => setView('list')}>기사 목록</Button>
+      <Button variant={view === 'register' ? 'primary' : 'secondary'} aria-pressed={view === 'register'} onClick={() => {
+        setRegistrationOpened(true)
+        setView('register')
+      }}>기사 등록</Button>
+    </nav>
+    {view === 'list' && <NewsAdminList />}
+    {registrationOpened && <div hidden={view !== 'register'}>
+      <NewsAdminRegistration onViewList={() => { setRegistrationOpened(false); setView('list') }} />
+    </div>}
+  </>
+}
+
+function NewsAdminRegistration({ onViewList }: { onViewList: () => void }) {
+  const markets = useQuery({
+    queryKey: ['news-admin', 'markets'],
+    queryFn: ({ signal }) => request('/market-targets', marketsSchema, { signal }),
+    retry: false,
+  })
+  if (markets.isError) return <Notice title="등록 화면을 불러오지 못했어요" error>
+    <p>{markets.error.message}</p>
+    <Button variant="secondary" className="mt-3" onClick={() => void markets.refetch()}>다시 불러오기</Button>
+  </Notice>
+  if (!markets.data) return <p role="status">등록 화면을 준비하고 있어요.</p>
+  return <NewsForm markets={markets.data.targets} onViewList={onViewList} />
+}
+
+function NewsForm({ markets, onViewList }: { markets: Market[]; onViewList: () => void }) {
   const client = useQueryClient()
   const [title, setTitle] = useState('')
   const [category, setCategory] = useState('')
   const [briefing, setBriefing] = useState('')
+  const [backgroundContext, setBackgroundContext] = useState('')
+  const [publicSummary, setPublicSummary] = useState('')
+  const [facts, setFacts] = useState<FactInput[]>([])
   const [selected, setSelected] = useState<Market[]>([])
   const [rationales, setRationales] = useState<Record<string, string>>({})
   const [busy, setBusy] = useState(false)
@@ -63,6 +94,10 @@ function NewsForm({ markets }: { markets: Market[] }) {
   const [published, setPublished] = useState<Published | null>(null)
   const attempt = useRef<{ fingerprint: string; requestId: string } | null>(null)
   const submitting = useRef(false)
+
+  function updateFact(id: string, field: Exclude<keyof FactInput, 'id'>, value: string) {
+    setFacts(current => current.map(fact => fact.id === id ? { ...fact, [field]: value } : fact))
+  }
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -92,10 +127,22 @@ function NewsForm({ markets }: { markets: Market[] }) {
       setError('원문 URL은 올바른 HTTP 또는 HTTPS 주소로 입력해 주세요.')
       return
     }
+    if (facts.some(fact => !fact.label.trim() || !fact.valueText.trim() || !(new Date(fact.asOfAt).getTime() <= Date.now()))) {
+      setError('사실과 수치의 항목명, 값, 기준 시각을 확인해 주세요.')
+      return
+    }
+
     const body = {
       title: title.trim(), category, briefing: briefing.trim(),
+      backgroundContext: backgroundContext.trim() || null,
+      facts: facts.map(({ label, valueText, unit, asOfAt }) => ({
+        label: label.trim(), valueText: valueText.trim(), unit: unit.trim() || null, asOfAt: new Date(asOfAt).toISOString(),
+      })),
       publishedAt: publicationTime.toISOString(), referenceAt: referenceTime.toISOString(),
-      source: { type: field('sourceType'), publisher: field('publisher'), url: field('sourceUrl'), excerpt: field('sourceExcerpt') },
+      source: {
+        type: field('sourceType'), publisher: field('publisher'), url: field('sourceUrl'),
+        excerpt: field('sourceExcerpt'), publicSummary: publicSummary.trim() || null,
+      },
       targets,
     }
     const fingerprint = JSON.stringify(body)
@@ -109,6 +156,7 @@ function NewsForm({ markets }: { markets: Market[] }) {
       })
       setPublished(registered)
       void client.invalidateQueries({ queryKey: ['news'] })
+      void client.invalidateQueries({ queryKey: adminNewsKey })
     } catch (cause) {
       setError(cause instanceof ApiError && cause.status === 409
         ? '이미 등록된 원문이거나 등록 정보가 충돌해요. 입력 내용을 확인해 주세요.'
@@ -123,6 +171,7 @@ function NewsForm({ markets }: { markets: Market[] }) {
     <Notice title="뉴스를 등록했어요">
       <p>{published.title}</p>
       <Link to={`/news/${published.id}`} className={linkClass}>등록한 뉴스 보기</Link>
+      <Button variant="secondary" onClick={onViewList}>기사 목록으로</Button>
     </Notice>
   )
 
@@ -139,12 +188,33 @@ function NewsForm({ markets }: { markets: Market[] }) {
               {categories.map(topic => <option key={topic.key} value={topic.key}>{topic.label}</option>)}
             </select>
           </div>
-          <TextArea label="학습용 뉴스 브리핑" value={briefing} onChange={event => setBriefing(event.target.value)} maxLength={8000} required />
+          <TextArea label="발표 내용" value={briefing} onChange={event => setBriefing(event.target.value)} maxLength={8000} required />
+          <TextArea label="배경 맥락" value={backgroundContext} onChange={event => setBackgroundContext(event.target.value)} maxLength={8000}
+            helperText="뉴스를 이해하는 데 필요한 배경이나 핵심 용어를 입력해 주세요." />
           <div className="grid gap-4 sm:grid-cols-2">
             <TextField label="원문 발행 시각" name="publishedAt" type="datetime-local" required />
             <TextField label="관측 기준 시각" name="referenceAt" type="datetime-local" helperText="비워두면 원문 발행 시각을 사용해요." />
           </div>
           <p className="text-meta text-text-secondary">시각은 기기의 시간대를 기준으로 입력해 주세요.</p>
+        </fieldset>
+
+        <fieldset disabled={busy} className="space-y-4">
+          <legend className="mb-4 text-section">주요 사실과 수치</legend>
+          {facts.map((fact, index) => <fieldset key={fact.id} className="space-y-3 rounded-card border border-border-default p-4">
+            <legend className="px-1 text-control font-medium">항목 {index + 1}</legend>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <TextField label="항목명" value={fact.label} onChange={event => updateFact(fact.id, 'label', event.target.value)} maxLength={255} required />
+              <TextField label="값" value={fact.valueText} onChange={event => updateFact(fact.id, 'valueText', event.target.value)} maxLength={255} required />
+              <TextField label="단위" value={fact.unit} onChange={event => updateFact(fact.id, 'unit', event.target.value)} maxLength={255} />
+              <TextField label="기준 시각" type="datetime-local" value={fact.asOfAt} onChange={event => updateFact(fact.id, 'asOfAt', event.target.value)} required />
+            </div>
+            <Button type="button" variant="text" onClick={() => setFacts(current => current.filter(item => item.id !== fact.id))}>항목 {index + 1} 삭제</Button>
+          </fieldset>)}
+          <Button type="button" variant="secondary" disabled={facts.length >= maxFacts}
+            onClick={() => {
+              const id = crypto.randomUUID()
+              setFacts(current => current.length >= maxFacts ? current : [...current, { id, label: '', valueText: '', unit: '', asOfAt: '' }])
+            }}>사실·수치 추가</Button>
         </fieldset>
 
         <fieldset disabled={busy} className="space-y-4">
@@ -159,6 +229,8 @@ function NewsForm({ markets }: { markets: Market[] }) {
             </div>
           </div>
           <TextField label="원문 URL" name="sourceUrl" type="url" maxLength={255} required />
+          <TextArea label="사용자에게 공개할 출처 요약" value={publicSummary} onChange={event => setPublicSummary(event.target.value)} maxLength={2000}
+            helperText="기사 상세의 출처 카드에서 보이는 요약이에요." />
           <TextArea label="원문 근거 발췌" name="sourceExcerpt" maxLength={8000} helperText="AI 피드백에서 근거로 참고할 실제 원문을 입력해 주세요." required />
         </fieldset>
 
@@ -192,6 +264,22 @@ function NewsForm({ markets }: { markets: Market[] }) {
         <p className="text-meta text-brand-primary">{categories.find(topic => topic.key === category)?.label ?? '주제 미선택'}</p>
         <h3 className="break-words text-section">{title.trim() || '기사 제목'}</h3>
         {briefing.trim() && <p className="whitespace-pre-wrap break-words text-ui">{briefing}</p>}
+        {backgroundContext.trim() && <div className="space-y-2">
+          <h4 className="text-control font-medium">배경 맥락</h4>
+          <p className="whitespace-pre-wrap break-words text-ui">{backgroundContext}</p>
+        </div>}
+        {facts.some(fact => fact.label.trim() && fact.valueText.trim()) && <div className="space-y-2">
+          <h4 className="text-control font-medium">주요 사실과 수치</h4>
+          <dl className="space-y-2 break-words text-meta">
+            {facts.filter(fact => fact.label.trim() && fact.valueText.trim()).map(fact => <div key={fact.id}>
+              <dt>{fact.label}</dt><dd>{fact.valueText} {fact.unit}</dd>
+            </div>)}
+          </dl>
+        </div>}
+        {publicSummary.trim() && <div className="space-y-2">
+          <h4 className="text-control font-medium">공개용 출처 요약</h4>
+          <p className="whitespace-pre-wrap break-words text-meta">{publicSummary}</p>
+        </div>}
         <div className="space-y-2 rounded-control bg-surface-subtle p-4">
           <h4 className="text-control font-medium">이 뉴스와 함께 관찰할 지표</h4>
           {selected.length > 0 ? (
