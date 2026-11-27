@@ -92,8 +92,10 @@ export type NewsItem = z.infer<typeof newsItemSchema>
  * GET /api/v1/news
  */
 export async function getNewsList(size = 100): Promise<NewsItem[]> {
-  const data = await request(`/news?size=${size}`, newsListResponseSchema)
-  return data.content
+  // 뉴스 목록 API는 contentType이 없으면 Live만 돌려준다. Replay 세션 제목도 찾도록 두 종류를 함께 조회한다.
+  const [live, replay] = await Promise.all((['live', 'replay'] as const).map(contentType =>
+    request(`/news?contentType=${contentType}&size=${size}`, newsListResponseSchema)))
+  return [...live.content, ...replay.content]
 }
 
 // ─── 상태별 표시 메타 ─────────────────────────────────────────────────────────
