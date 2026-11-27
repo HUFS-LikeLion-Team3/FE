@@ -1,7 +1,7 @@
 import { horizons, type Horizon } from '../learning/model'
 
 export { horizons }
-type Market = 'korea' | 'us' | 'rate' | 'fx'
+export type Market = 'korea' | 'us' | 'rate' | 'fx'
 export type PreviewState = 'ready' | 'repeated' | 'insufficient' | 'empty' | 'loading' | 'error'
 export type ReasonRecord = {
   newsId: string; title: string; target: string; horizon: Horizon; reason: string; variables: string[]
@@ -11,11 +11,11 @@ export type OutcomeRecord = {
   direction: 'up' | 'down' | 'neutral'; change: number; reflection: string
 }
 
-export const markets: { key: Market; label: string; width: string }[] = [
-  { key: 'korea', label: '국내 주식', width: 'w-36' },
-  { key: 'us', label: '미국 주식', width: 'w-36' },
-  { key: 'rate', label: '금리', width: 'w-28' },
-  { key: 'fx', label: '환율', width: 'w-28' },
+export const markets: { key: Market; code: string; label: string; width: string }[] = [
+  { key: 'korea', code: 'korea_equity', label: '국내 주식', width: 'w-36' },
+  { key: 'us', code: 'us_equity', label: '미국 주식', width: 'w-36' },
+  { key: 'rate', code: 'rate', label: '금리', width: 'w-28' },
+  { key: 'fx', code: 'fx', label: '환율', width: 'w-28' },
 ]
 
 export function distinctReasonNews(records: ReasonRecord[]) {

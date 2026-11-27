@@ -7,6 +7,8 @@ import { Notice, Shell, linkClass } from '@/features/learning/components/PagePri
 import { getPatternCategories, getPatternHorizons, getPatternReasons, getPatternSuggestions, type DirectionCounts, type VariablePattern } from './api'
 import { PatternHeading, PatternNavigation } from './PatternNavigation'
 import { PatternEvidence, type EvidenceView } from './PatternEvidence'
+import { LiveOutcomes } from './LiveOutcomes'
+import { horizons, markets } from './model'
 
 function RequestState({ pending, error, retry }: { pending: boolean; error: Error | null; retry: () => void }) {
   const location = useLocation()
@@ -47,6 +49,8 @@ export default function LivePatterns() {
   const selectedCategory = params.get('category')?.trim() || undefined
   const category = selectedCategory && selectedCategory.length <= 255 ? selectedCategory : undefined
   const reasoning = kind === 'reasoning'
+  const market = markets.find(item => item.key === params.get('market')) ?? markets[1]
+  const horizon = horizons.find(value => String(value) === params.get('horizon')) ?? 5
   const [evidence, setEvidence] = useState<EvidenceView | null>(null)
   const reasons = useQuery({ queryKey: ['patterns', 'reasons'], enabled: reasoning, queryFn: ({ signal }) => getPatternReasons(signal), retry: false })
   const suggestions = useQuery({ queryKey: ['patterns', 'suggestions'], enabled: reasoning, queryFn: ({ signal }) => getPatternSuggestions(signal), retry: false })
@@ -57,7 +61,7 @@ export default function LivePatterns() {
     setParams(previous => { const next = new URLSearchParams(previous); if (value) next.set(key, value); else next.delete(key); return next }, { preventScrollReset: true })
   }
   return <Shell section="/learning"><div className="space-y-6">
-    <PatternHeading title={kind === 'reasoning' ? '기록에서, 반복되는 생각을 발견하다' : '예상과 관찰을, 나란히 살펴보다'} description="정답이나 점수 대신 내가 쌓아온 판단의 흐름을 돌아보세요." />
+    <PatternHeading title={kind === 'reasoning' ? '기록에서, 반복되는 생각을 발견하다' : '예상과 관찰을, 나란히 살펴보다'} description={kind === 'reasoning' ? '정답이나 점수 대신 내가 쌓아온 판단의 흐름을 돌아보세요.' : market.key === 'rate' ? '금리 범주와 기간을 맞춰 관측된 변화폭과 당시 판단을 함께 살펴보세요.' : '시장 범주와 기간을 맞춰 서로 다른 뉴스의 사례를 비교해 보세요.'} />
     <PatternNavigation kind={kind} onChange={value => setParam('pattern', value)} />
 
     {kind === 'reasoning' ? <>
@@ -87,7 +91,7 @@ export default function LivePatterns() {
           })}>제안 근거 보기</Button>
         </article>)}</div> : <Notice title="새로 제안할 관점이 없어요">분석 조건은 충족했지만, 반복해서 확인할 요소가 아직 없어요. 기록을 이어가며 다음에 다시 살펴보세요.</Notice>)}
     </> : <>
-      <Notice title="관측 결과의 사례 비교는 준비 중이에요">시장 범주·기간별로 예측과 실제 관측값, 회고를 함께 비교하는 기능이에요. 현재 연결된 집계는 예측 기록 수이며, 확정 관측 사례 수나 적중 여부가 아니에요.</Notice>
+      <LiveOutcomes market={market} horizon={horizon} onMarket={value => setParam('market', value)} onHorizon={value => setParam('horizon', value)} onEvidence={setEvidence} />
       {import.meta.env.DEV && <Link className={linkClass} to="/learning?tab=patterns&preview=1&pattern=outcome">관측 결과 시안 미리보기</Link>}
     </>}
 
