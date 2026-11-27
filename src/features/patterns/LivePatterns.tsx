@@ -21,17 +21,52 @@ function RequestState({ pending, error, retry }: { pending: boolean; error: Erro
   return pending ? <Notice title="기록의 흐름을 살펴보고 있어요">집계와 연결된 근거 기록을 확인하고 있어요.<Button loading disabled>불러오는 중</Button></Notice> : null
 }
 
+/** 마지막 글자의 받침. 한글이 아니면 null. */
+function finalConsonant(word: string) {
+  const code = word.trim().charCodeAt(word.trim().length - 1) - 0xac00
+  return code >= 0 && code <= 11171 ? code % 28 : null
+}
+/** 받침에 맞는 조사. 한글이 아니면 둘 다 보여준다. */
+const particle = (word: string, withBatchim: string, without: string) => {
+  const batchim = finalConsonant(word)
+  return batchim === null ? `${withBatchim}(${without})` : batchim ? withBatchim : without
+}
+/** '으로/로': 받침이 없거나 ㄹ 받침이면 '로'. */
+const directionParticle = (word: string) => {
+  const batchim = finalConsonant(word)
+  return batchim === null ? '(으)로' : batchim && batchim !== 8 ? '으로' : '로'
+}
+
+/** 카드마다 대표 예시 문장이 겹치지 않도록, 앞 카드에서 이미 대표로 쓴 문장은 뒤로 미룬다. */
+function withDistinctLeadExamples(values: VariablePattern[]) {
+  const used = new Set<string>()
+  return values.map(value => {
+    const lead = value.exampleTexts.find(text => !used.has(text.trim()))
+    if (lead === undefined) return value
+    used.add(lead.trim())
+    return { ...value, exampleTexts: [lead, ...value.exampleTexts.filter(text => text !== lead)] }
+  })
+}
+
+/** 많이 쓴 순서로 한 줄 요약. 점수나 평가 없이 횟수만 적는다. */
+function KeywordSummary({ values }: { values: VariablePattern[] }) {
+  const [top, ...rest] = values
+  if (!top) return null
+  const others = rest.slice(0, 2).map(value => `${value.variableName}${particle(value.variableName, '은', '는')} ${value.mentionCount}개`).join(', ')
+  return <p className="text-ui text-text-secondary">가장 자주 쓴 판단 키워드는 ‘{top.variableName}’{particle(top.variableName, '이에요', '예요')}(뉴스 {top.mentionCount}개).{others && ` 이어서 ${others} 뉴스에서 썼어요.`}</p>
+}
+
 function VariableCards({ values, reflection = false, onEvidence }: { values: VariablePattern[]; reflection?: boolean; onEvidence: (view: EvidenceView) => void }) {
   return <div className="grid grid-cols-1 items-start gap-8 lg:grid-cols-2 lg:gap-12">
-    {values.map(value => <article key={value.variable} className="space-y-2 rounded-card bg-surface-subtle p-4">
-      <h3 className="text-control font-medium">{value.variableName} · 서로 다른 뉴스 {value.mentionCount}개</h3>
-      <p className="text-meta text-text-muted">{reflection ? '놓친 변수에 대한 최종 회고에서 직접 언급한 요소예요.' : '판단 이유에서 언급한 요소예요. 문맥이나 예측의 정오를 평가하지 않아요.'}</p>
+    {withDistinctLeadExamples(values).map(value => <article key={value.variable} className="space-y-2 rounded-card bg-surface-subtle p-4">
+      <h3 className="text-control font-medium">{reflection ? `${value.mentionCount}개 뉴스의 회고에서 ‘${value.variableName}’${particle(value.variableName, '을', '를')} 돌아봤어요` : `${value.mentionCount}개 뉴스에서 ‘${value.variableName}’${directionParticle(value.variableName)} 판단했어요`}</h3>
+      <p className="text-meta text-text-muted">{reflection ? '놓친 변수에 대한 최종 회고에서 직접 언급한 키워드예요.' : '판단 이유에 직접 쓴 키워드예요. 문맥이나 예측의 정오를 평가하지 않아요.'}</p>
       {value.exampleTexts.length > 0 && <div className="space-y-2 rounded-card border border-border-default bg-surface-canvas p-6">
         <p className="text-control font-medium">{reflection ? '최종 회고' : '판단 이유'} 원문 예시</p>
         <blockquote className="whitespace-pre-wrap break-words text-ui text-text-secondary">“{value.exampleTexts[0]}”</blockquote>
         <Button variant="text" className="w-full" onClick={() => onEvidence({
           title: `${value.variableName} · 원문 예시 ${value.exampleTexts.length}개`,
-          description: `서로 다른 뉴스 ${value.mentionCount}개에서 언급된 요소예요. 원문 예시는 최대 3개이며 읽기 전용이에요.`,
+          description: `서로 다른 뉴스 ${value.mentionCount}개에서 쓴 키워드예요. 원문 예시는 최대 3개이며 읽기 전용이에요.`,
           entries: value.exampleTexts.map((body, index) => ({ title: `${reflection ? '최종 회고' : '판단 이유'} 원문 ${index + 1}`, lines: [body] })),
         })}>원문 예시 {value.exampleTexts.length}개 보기</Button>
       </div>}
@@ -70,12 +105,13 @@ export default function LivePatterns() {
         <Notice className="bg-brand-subtle" title={`판단 이유가 있는 예측 ${reasons.data.analyzedPredictionCount}건 · 놓친 변수 최종 회고 ${reasons.data.analyzedReflectionCount}건`}>
           판단 이유를 남긴 기록만 사용해요. 위 건수는 예측·회고 기록 수이며, 서로 다른 뉴스 수와 달라요. 결과 도착 전에도 살펴볼 수 있어요.
         </Notice>
-        {reasons.data.analyzedPredictionCount === 0 ? <Notice title="아직 이유를 남긴 기록이 없어요">판단 이유를 적은 서로 다른 뉴스 5개가 쌓이면 이유 패턴을 보여드려요.<Link to="/explore" className={`${linkClass} w-full`}>뉴스 살펴보기</Link></Notice>
+        {reasons.data.analyzedPredictionCount === 0 ? <Notice title="아직 이유를 남긴 기록이 없어요">판단 이유를 적은 서로 다른 뉴스 5개가 쌓이면 판단 키워드를 보여드려요.<Link to="/explore" className={`${linkClass} w-full`}>뉴스 살펴보기</Link></Notice>
           : suggestions.data?.insufficientData && !suggestions.isError ? <Notice title="조금 더 쌓이면, 흐름을 살펴볼 수 있어요">판단 이유를 적은 서로 다른 뉴스 5개가 필요해요. 같은 뉴스의 여러 대상·기간은 한 개로 세어요.<Link to="/explore" className={`${linkClass} w-full`}>뉴스 살펴보고 기록하기</Link></Notice>
           : !suggestions.data || suggestions.isError ? null : <>
-            <h2 className="text-section">자주 고려한 요소</h2>
-            {reasons.data.consideredVariables.length ? <VariableCards values={reasons.data.consideredVariables} onEvidence={setEvidence} /> : <Notice title="아직 요약할 요소가 없어요">판단 이유에 적힌 요소가 모이면 표시해요. 기록에 언급하지 않았다고 고려하지 않은 것으로 판단하지 않아요.</Notice>}
-            {reasons.data.missedVariables.length > 0 && <><h2 className="text-section">회고에서 돌아본 요소</h2><VariableCards values={reasons.data.missedVariables} reflection onEvidence={setEvidence} /></>}
+            <h2 className="text-section">나의 판단 키워드</h2>
+            {reasons.data.consideredVariables.length > 0 && <KeywordSummary values={[...reasons.data.consideredVariables].sort((a, b) => b.mentionCount - a.mentionCount)} />}
+            {reasons.data.consideredVariables.length ? <VariableCards values={[...reasons.data.consideredVariables].sort((a, b) => b.mentionCount - a.mentionCount)} onEvidence={setEvidence} /> : <Notice title="아직 요약할 키워드가 없어요">판단 이유에 쓴 키워드가 모이면 표시해요. 기록에 쓰지 않았다고 고려하지 않은 것으로 판단하지 않아요.</Notice>}
+            {reasons.data.missedVariables.length > 0 && <><h2 className="text-section">회고에서 돌아본 키워드</h2><VariableCards values={reasons.data.missedVariables} reflection onEvidence={setEvidence} /></>}
           </>}
       </>}
       <h2 className="text-section">함께 살펴볼 관점</h2>

@@ -9,7 +9,7 @@ import type { EvidenceView } from './PatternEvidence'
 import type { Horizon } from '../learning/model'
 
 type MarketOption = typeof markets[number]
-const grid = 'grid grid-cols-[240px_240px_144px_140px_minmax(0,1fr)] gap-4 p-4'
+const grid = 'grid grid-cols-[minmax(0,1.3fr)_minmax(0,1.1fr)_96px_120px_minmax(0,1.6fr)] gap-4 p-4'
 
 function predictionLabel(item: OutcomeCase, market: MarketOption) {
   if (item.direction === 'neutral') return '큰 방향성 없음'
@@ -59,6 +59,11 @@ export function LiveOutcomes({ market, horizon, onMarket, onHorizon, onEvidence 
       <div className="flex gap-2" role="group" aria-label="시장 범주">{markets.map(item => <FilterChip key={item.key} className={item.width} selected={market.key === item.key} onClick={() => onMarket(item.key)}>{item.label}</FilterChip>)}</div>
       <div className="flex gap-2" role="group" aria-label="비교 기간">{horizons.map(value => <FilterChip key={value} className="w-40" selected={horizon === value} onClick={() => onHorizon(String(value))}>{value}거래일</FilterChip>)}</div>
     </div>
+    <div className="space-y-1 text-meta text-text-muted">
+      <p>같은 시장·같은 기간을 기준으로, 서로 다른 뉴스에서 내가 예측한 방향과 실제로 관찰된 변화를 나란히 보여줘요. 맞고 틀림을 채점하지 않아요. 반복되는 판단 습관을 찾아보세요.</p>
+      <p>고른 시장 범주의 지표로 예측했고 그 기간의 관측값이 확정된 기록만 모아요. 지난 뉴스는 결과를 공개한 기록만 들어가요. 같은 뉴스는 가장 최근에 제출한 기록 1개로 세요.</p>
+      <p>뉴스마다 각자의 기준일에서 같은 기간이 지난 변화를 비교해요. 기준일은 뉴스 기준 시각(없으면 게시 시각) 뒤 처음 확정된 정규 거래 종가예요. 1·5·20거래일은 대상 시장의 휴장일을 뺀 거래일로 세고, 위에서 기간을 고를 수 있어요.</p>
+    </div>
     {query.isPending && <Notice title="기록의 흐름을 살펴보고 있어요">확정된 관측값과 연결된 학습 기록을 확인하고 있어요.<Button loading disabled>불러오는 중</Button></Notice>}
     {query.isError && <Notice title="사례를 불러오지 못했어요" error><p>{query.error.message} 저장한 예측·회고는 유지돼요.</p><Button variant="text" onClick={() => void query.refetch()}>다시 불러오기</Button></Notice>}
     {data && !query.isError && <>
@@ -70,8 +75,8 @@ export function LiveOutcomes({ market, horizon, onMarket, onHorizon, onEvidence 
           : '이 시장 범주와 기간에서는 아직 비교를 시작할 사례가 부족해요. 다른 조건을 선택하거나 관측이 끝난 뒤 다시 확인해 주세요.'}
       </Notice>
       {sufficient ? <>
-        <div className="overflow-x-auto"><table className="block w-full min-w-[1000px]" aria-label={`${market.label} ${horizon}거래일 예측·관측·회고 사례`}>
-          <thead className="block rounded-card bg-surface-subtle"><tr className={`${grid} text-left text-control font-medium`}>{['당시 뉴스', '대상·기준일·관측일', '내 예측', '관찰된 변화', '내 회고'].map(label => <th key={label} scope="col" className="font-medium">{label}</th>)}</tr></thead>
+        <div className="overflow-x-auto"><table className="block w-full min-w-[760px]" aria-label={`${market.label} ${horizon}거래일 예측·관측·회고 사례`}>
+          <thead className="block rounded-card bg-surface-subtle"><tr className={`${grid} text-left text-control font-medium`}>{['당시 뉴스', '대상·기준일·관측일', '내 예측', '관찰된 변화', '내 회고'].map(label => <th key={label} scope="col" className="font-medium">{label}{label === '관찰된 변화' && <span className="block text-meta font-normal text-text-muted">{market.key === 'rate' ? '기준일 대비 관측일 변화폭(%p)' : '기준일 대비 관측일 종가 변화율'}</span>}</th>)}</tr></thead>
           <tbody className="block space-y-4 pt-4">{data.cases.map(item => {
             const moved = change(item, market)
             return <tr key={item.newsId} className={grid}>
@@ -79,7 +84,7 @@ export function LiveOutcomes({ market, horizon, onMarket, onHorizon, onEvidence 
               <td className="space-y-2"><p className="text-control font-medium">{item.targetName}</p><p className="text-meta text-text-muted">기준일 {item.baselineDate ?? '-'}<br />관측일 {item.observationDate ?? '-'}</p></td>
               <td className="text-ui text-text-secondary">{predictionLabel(item, market)}</td>
               <td className={`font-mono text-xl leading-7 ${!moved || moved.value === 0 ? 'text-market-neutral' : moved.value > 0 ? 'text-market-up' : 'text-market-down'}`}>{moved?.label ?? '-'}</td>
-              <td className="whitespace-pre-wrap break-words text-ui leading-[30px] text-text-secondary">{item.reflection ?? <span className="text-text-muted">아직 최종 회고를 남기지 않았어요.</span>}</td>
+              <td className="line-clamp-4 whitespace-pre-wrap break-words text-ui leading-[30px] text-text-secondary">{item.reflection ?? <span className="text-text-muted">아직 최종 회고를 남기지 않았어요.</span>}</td>
             </tr>
           })}</tbody>
         </table></div>
