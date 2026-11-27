@@ -10,12 +10,16 @@ import { ReplayEditorRoute, ReplayFeedbackRoute } from './ReplaySessionRoutes'
 import ReplayNewsDetail from './ReplayNewsDetail'
 import { ReplayErrorNotice } from './ReplayErrorNotice'
 
+/** 네트워크 오류·시간 초과·5xx만 한 번 다시 시도한다. 401·404 같은 응답과 형식 오류는 바로 안내한다. */
+const retryTransient = (failureCount: number, error: Error) =>
+  failureCount < 1 && error instanceof ApiError && error.kind !== 'contract' && (error.status === 0 || error.status >= 500)
+
 /** 개발 미리보기의 상태 선택기(?state=)로 강제할 수 있는 목록·상세 상태. */
 export type ReplayPreviewState = 'loading' | 'error' | 'empty'
 
 function useClearPreviewState() {
   const [, setParams] = useSearchParams()
-  return () => setParams(previous => { const next = new URLSearchParams(previous); next.delete('state'); return next })
+  return () => setParams(previous => { const next = new URLSearchParams(previous); next.delete('state'); return next }, { preventScrollReset: true })
 }
 
 /** 지난 뉴스 목록: 필터는 URL에서 읽어 서버 검색 파라미터로 보내고, 더 보기로 다음 페이지를 이어 붙인다. */
@@ -39,7 +43,7 @@ export function ReplayLibraryRoute({ preview }: { preview?: ReplayPreviewState }
     initialPageParam: 0,
     queryFn: ({ pageParam, signal }) => getReplayNewsPage(filters, pageParam, signal),
     getNextPageParam: last => last.hasNext ? last.page + 1 : undefined,
-    retry: false,
+    retry: retryTransient,
     staleTime: 60_000,
   })
   const items = [...new Map((query.data?.pages.flatMap(page => page.content) ?? []).map(item => [item.id, item])).values()]
@@ -67,7 +71,7 @@ export function ReplayDetailRoute({ preview, renderStart }: { preview?: ReplayPr
   const { newsId = '' } = useParams()
   const { search } = useLocation()
   const clearPreview = useClearPreviewState()
-  const query = useQuery({ queryKey: ['replay', 'news', 'detail', newsId], queryFn: ({ signal }) => getReplayNews(newsId, signal), retry: false, staleTime: 60_000 })
+  const query = useQuery({ queryKey: ['replay', 'news', 'detail', newsId], queryFn: ({ signal }) => getReplayNews(newsId, signal), retry: retryTransient, staleTime: 60_000 })
   const back = <Link to={`/replay${search}`} className={linkClass}>지난 뉴스 목록으로</Link>
   const previewError = preview === 'error' ? new ApiError(500) : preview === 'empty' ? new ApiError(404) : null
   if (preview === 'loading' || (!previewError && query.isPending)) return <PageLoading />

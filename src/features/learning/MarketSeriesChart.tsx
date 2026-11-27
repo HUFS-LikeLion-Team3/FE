@@ -26,7 +26,7 @@ export default function MarketSeriesChart({ data, outcome, valueLabel = '종가'
         {readyRows.filter(row => row.observationSessionDate && points.some(point => point.tradingDate === row.observationSessionDate)).map(row => <ReferenceDot key={row.horizon} x={row.observationSessionDate!} y={row.observedValue!} r={4} fill="var(--color-brand-primary)" label={replay ? undefined : `T${row.horizon}`} />)}
       </LineChart></ResponsiveContainer>
     </div>
-    {replay ? <div className="grid grid-cols-4 gap-2 text-meta text-text-muted" aria-label="관측 마커 날짜">
+    {replay ? <div className="grid grid-cols-2 gap-2 text-meta text-text-muted sm:grid-cols-4" aria-label="관측 마커 날짜">
       <span>T0 · {baseline.baselineSessionDate ?? '기준일 미확정'}</span>
       {([1, 5, 20] as const).map(horizon => <span key={horizon}>T{horizon} · {readyRows.find(row => row.horizon === horizon)?.observationSessionDate ?? '관측일 없음'}</span>)}
     </div> : <div className="flex flex-wrap gap-6 font-mono text-label text-text-secondary">

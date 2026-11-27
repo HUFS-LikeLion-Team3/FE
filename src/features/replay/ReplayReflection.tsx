@@ -34,7 +34,7 @@ export default function ReplayReflection({ data, save, prediction, waitingForRes
     } catch (error) { setError(error instanceof Error ? error.message : '잠시 후 다시 시도해 주세요.') }
     finally { inFlight.current = false; setBusy(false) }
   }
-  return <div className="grid grid-cols-[minmax(0,3fr)_minmax(0,5fr)] items-start gap-12">
+  return <div className="grid grid-cols-1 items-start gap-8 lg:grid-cols-[minmax(0,3fr)_minmax(0,5fr)] lg:gap-12">
     <aside className="min-w-0 space-y-6 rounded-card bg-surface-subtle p-6" aria-label="내가 남긴 판단">
       <p className="font-mono text-label text-brand-primary">MY PREDICTION</p>
       <h2 className="text-section">내가 남긴 판단</h2>

@@ -1,6 +1,7 @@
 import { ApiError } from '@/lib/api-client'
 import { horizons, type Draft, type FeedbackItem, type FeedbackState, type FeedbackView, type NewsView, type Source, type Target } from '../model'
 import { sessionDestination } from '../session-routes'
+import { parseBriefing } from '@/features/news/briefing'
 import type { FeedbackDto, MarketDto, SessionDto, SessionTargetDto } from './contracts'
 import { learningApi as api, replayLearningApi } from './service'
 
@@ -26,7 +27,7 @@ export async function loadNews(newsId: string, signal?: AbortSignal, newsData?: 
   const primary = sources.sources.find(s => s.isPrimary)
   return { id: news.id, title: news.title, category: news.category, publisher: primary?.publisher ?? '발행처 정보 없음', publishedAt: formatTime(news.publishedAt),
     originalUrl: primary?.url ?? null, originalLabel: '대표 출처 보기 ↗',
-    briefing: [{ title: '발표 내용', body: news.briefing }], context: news.backgroundContext?.trim() || null, term: null,
+    briefing: parseBriefing(news.briefing), context: news.backgroundContext?.trim() || null, term: null,
     facts: [...facts.facts].sort((a, b) => a.sortOrder - b.sortOrder).map(f => ({ id: f.id, label: f.label, value: f.valueText, unit: f.unit ?? '', asOf: f.asOfAt ? formatTime(f.asOfAt) : null })),
     sources: sources.sources.map(s => ({ id: s.id, title: s.title, publisher: s.publisher, date: formatTime(s.publishedAt), quote: '', summary: s.publicSummary?.trim(), url: s.url })),
     targets: [...candidates.candidates].sort((a, b) => a.sortOrder - b.sortOrder).map(c => ({ ...toTarget({ ...c, id: c.marketTargetId }), rationale: c.rationale })),

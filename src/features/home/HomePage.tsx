@@ -1,3 +1,4 @@
+import { briefingSummary } from '@/features/news/briefing'
 import { LoadingRows, LoadingSkeleton, SkeletonBlock } from '@/components/ui/LoadingSkeleton'
 import { sessionDestination } from '@/features/learning/session-routes'
 import { useQuery } from '@tanstack/react-query'
@@ -5,6 +6,8 @@ import { Link } from 'react-router-dom'
 import { ApiError } from '@/lib/api-client'
 import { categoryLabel } from '@/features/news/category'
 import { NewsPublisher } from './NewsPublisher'
+import { NewsSessionBadge, SessionStatusError } from './NewsSessionBadge'
+import { newsSessionLink, useLiveSessionIndex, type LiveSessionIndex } from './news-session'
 import { Shell } from '@/features/learning/components/PagePrimitives'
 import {
   getTopInProgress,
@@ -56,7 +59,8 @@ function InProgressCard({
 
 // ─── 뉴스 목록 아이템 ─────────────────────────────────────────────────────────
 
-function NewsListItem({ news }: { news: NewsItem }) {
+function NewsListItem({ news, sessionIndex }: { news: NewsItem; sessionIndex: LiveSessionIndex | undefined }) {
+  const link = newsSessionLink(news.id, sessionIndex)
   const publishedDate = new Date(news.publishedAt).toLocaleDateString('ko-KR', {
     month: 'long',
     day: 'numeric',
@@ -65,17 +69,18 @@ function NewsListItem({ news }: { news: NewsItem }) {
   return (
     <li>
       <Link
-        to={`/news/${news.id}`}
+        to={link.href}
         className="group flex flex-col gap-1 py-5 hover:opacity-80 focus-visible:outline-2 focus-visible:outline-brand-primary"
       >
         <p className="font-sans text-[12px] text-text-muted">
           {categoryLabel(news.category)} / <NewsPublisher newsId={news.id} /> · {publishedDate}
         </p>
+        <NewsSessionBadge link={link} />
         <h3 className="font-sans text-[17px] font-semibold text-text-primary leading-snug group-hover:text-brand-primary transition-colors">
           {news.title}
         </h3>
         <p className="font-sans text-[14px] text-text-secondary leading-relaxed line-clamp-2">
-          {news.briefing}
+          {briefingSummary(news.briefing)}
         </p>
       </Link>
     </li>
@@ -104,6 +109,8 @@ export default function HomePage() {
     retry: false,
   })
   const inProgressSession = sessionsQuery.data
+  // 기사별 기존 Live 세션. 실패·조회 중에는 '세션 없음'으로 단정하지 않는다.
+  const sessionIndex = useLiveSessionIndex()
 
   // 뉴스 조회 오류를 401(로그인 필요)과 그 외로 구분한다.
   const isUnauthorized = newsError instanceof ApiError && newsError.status === 401
@@ -111,6 +118,7 @@ export default function HomePage() {
   // 대표 뉴스: 첫 번째 뉴스 / 핵심 뉴스: 나머지
   const featuredNews = newsList[0]
   const coreNewsList = newsList.slice(1)
+  const featuredLink = featuredNews ? newsSessionLink(featuredNews.id, sessionIndex.data) : null
 
   return (
     <Shell>
@@ -127,6 +135,8 @@ export default function HomePage() {
           안녕하세요. 오늘은 어떤 변화를 함께 살펴볼까요?
         </p>
       </div>
+
+      <SessionStatusError error={sessionIndex.error} busy={sessionIndex.isFetching} retry={() => void sessionIndex.refetch()} />
 
       {/* 메인 콘텐츠: 대표 뉴스 + 이어서 학습하기 */}
       <div className="grid grid-cols-1 gap-10 lg:grid-cols-[minmax(0,5fr)_minmax(0,3fr)] lg:items-start">
@@ -164,23 +174,33 @@ export default function HomePage() {
             </div>
           ) : featuredNews ? (
             <>
-              <div className="space-y-1">
-                <p className="font-sans text-[12px] font-semibold text-brand-primary">
-                  오늘의 대표 뉴스 / {categoryLabel(featuredNews.category)}
-                </p>
+              <div className="space-y-2">
+                <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+                  <p className="font-sans text-[12px] font-semibold text-brand-primary">
+                    오늘의 대표 뉴스 / {categoryLabel(featuredNews.category)}
+                  </p>
+                  {featuredLink && <NewsSessionBadge link={featuredLink} />}
+                </div>
                 <h2 className="text-page text-text-primary leading-snug">
                   {featuredNews.title}
                 </h2>
               </div>
-              <p className="font-sans text-[15px] text-text-secondary leading-relaxed">
-                {featuredNews.briefing}
+              <p className="font-sans text-[15px] text-text-secondary leading-relaxed line-clamp-4">
+                {briefingSummary(featuredNews.briefing)}
               </p>
               <p className="font-sans text-[13px] text-text-muted">
                 <NewsPublisher newsId={featuredNews.id} /> · {new Date(featuredNews.publishedAt).toLocaleDateString('ko-KR')}
               </p>
-              <Link to={`/news/${featuredNews.id}`} className={primaryLinkClass}>
-                뉴스 읽고 예측하기
-              </Link>
+              {sessionIndex.isPending ? (
+                // 학습 상태 확인 전에는 버튼 문구가 바뀌며 깜빡이지 않도록 자리만 둔다.
+                <LoadingSkeleton label="학습 상태를 확인하는 중">
+                  <SkeletonBlock className="h-12 w-full" />
+                </LoadingSkeleton>
+              ) : (
+                <Link to={featuredLink?.href ?? `/news/${featuredNews.id}`} className={primaryLinkClass}>
+                  {featuredLink?.action ?? '뉴스 보기'}
+                </Link>
+              )}
             </>
           ) : (
             // 빈 목록 (오류 아님)
@@ -217,7 +237,7 @@ export default function HomePage() {
           </h2>
           <ul className="divide-y divide-border-default">
             {coreNewsList.map((news) => (
-              <NewsListItem key={news.id} news={news} />
+              <NewsListItem key={news.id} news={news} sessionIndex={sessionIndex.data} />
             ))}
           </ul>
           <div className="pt-4 text-center">

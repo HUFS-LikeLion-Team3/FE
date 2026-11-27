@@ -1,7 +1,9 @@
 import { lazy, Suspense } from 'react'
 import { ProtectedRoutes, SignInRoute } from '@/features/auth/RouteAccess'
-import { createBrowserRouter, Navigate, Route, RouterProvider, Routes } from 'react-router-dom'
+import { createBrowserRouter, Route, RouterProvider, Routes, ScrollRestoration } from 'react-router-dom'
 import { PageLoading } from '@/features/learning/components/PageLoading'
+import { RouteTitle } from '@/lib/RouteTitle'
+import NotFoundPage from '@/features/auth/NotFoundPage'
 
 const ReplayResultsPage = lazy(() => import('@/features/replay/ReplayResultsPage'))
 const ReplayPreviewPage = import.meta.env.DEV ? lazy(() => import('@/features/replay/ReplayPreviewPage')) : null
@@ -60,11 +62,12 @@ function AppRoutes() {
       {HomePreviewPage && <Route path="/dev/home" element={<HomePreviewPage />} />}
       {LearningHistoryPreviewPage && <Route path="/dev/learning" element={<LearningHistoryPreviewPage />} />}
       {FlowPreviewPage && <Route path="/dev/flow" element={<FlowPreviewPage />} />}
-      <Route path="*" element={<Navigate to="/" replace />} />
+      <Route path="*" element={<NotFoundPage />} />
     </Routes>
   )
 }
 
 // A data router enables useBlocker for unsaved prediction navigation.
-const router = createBrowserRouter([{ path: '*', element: <Suspense fallback={<PageLoading />}><AppRoutes /></Suspense> }])
+// ScrollRestoration: 새 화면은 맨 위에서 시작하고, 뒤로 가기는 이전 위치를 복원한다. 같은 화면의 필터 변경은 preventScrollReset으로 위치를 유지한다.
+const router = createBrowserRouter([{ path: '*', element: <><ScrollRestoration /><RouteTitle /><Suspense fallback={<PageLoading />}><AppRoutes /></Suspense></> }])
 export default function App() { return <RouterProvider router={router} /> }
