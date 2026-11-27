@@ -19,7 +19,7 @@ export function PatternNavigation({ kind, onChange }: { kind: PatternKind; onCha
   return <>
     <WorkbookNavigation patterns />
     <div className="flex flex-wrap gap-2" role="group" aria-label="학습 패턴 종류">
-      <FilterChip className="w-60" selected={kind === 'reasoning'} onClick={() => onChange('reasoning')}>판단 이유 패턴</FilterChip>
+      <FilterChip className="w-60" selected={kind === 'reasoning'} onClick={() => onChange('reasoning')}>판단 키워드</FilterChip>
       <FilterChip className="w-60" selected={kind === 'outcome'} onClick={() => onChange('outcome')}>관측 결과 패턴</FilterChip>
     </div>
   </>
